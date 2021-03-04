@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, marker::PhantomData};
 
 custom_derive! {
     #[allow(non_camel_case_types)]
@@ -10,6 +10,7 @@ custom_derive! {
         ping
     }
 }
+
 #[derive(Debug)]
 pub enum RedisError {
     ParseError,
@@ -22,5 +23,27 @@ impl Error for RedisError {}
 impl fmt::Display for RedisError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "An error occured")
+    }
+}
+
+pub enum ResponseType {
+    SimpleString,
+    Error,
+    Integer,
+    BulkString,
+    Array,
+}
+
+pub struct Response {
+    pub response_type: ResponseType,
+    pub data: String,
+}
+
+impl Response {
+    pub fn new(response_type: ResponseType, data: String) -> Response {
+        Response {
+            response_type,
+            data,
+        }
     }
 }

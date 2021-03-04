@@ -1,4 +1,4 @@
-use crate::enums::{Commands, RedisError};
+use crate::enums::{Commands, RedisError, Response, ResponseType};
 
 #[allow(dead_code)]
 pub fn parse_command(command: &str) -> Result<String, RedisError> {
@@ -27,8 +27,15 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
 }
 
 #[allow(dead_code)]
-pub fn parse_response(response: &str) -> Result<String, RedisError> {
-    Ok(response.to_string())
+pub fn parse_response(response: &str) -> Result<Response, RedisError> {
+    let response_type: ResponseType;
+    let data = String::new();
+
+    for byte in response.bytes() {
+        if byte as char == '*' {}
+    }
+
+    Ok(Response::new(response_type, data))
 }
 
 #[cfg(test)]
