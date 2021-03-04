@@ -57,7 +57,7 @@ custom_derive! {
 }
 
 #[allow(dead_code)]
-pub fn parse_command(command: &String) -> Result<String, RedisError> {
+fn parse_command(command: &String) -> Result<String, RedisError> {
     let mut output = String::new();
     let tokens: Vec<&str> = command.split(' ').collect();
 
@@ -67,7 +67,7 @@ pub fn parse_command(command: &String) -> Result<String, RedisError> {
 
     let command = tokens[0];
 
-    if let Err(_) = command.parse::<Commands>() {
+    if let Err(_) = command.to_lowercase().parse::<Commands>() {
         return Err(RedisError::InvalidCommandError);
     };
 
@@ -80,4 +80,18 @@ pub fn parse_command(command: &String) -> Result<String, RedisError> {
     }
 
     Ok(output)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::connection;
+    #[test]
+
+    fn test_parse_command() {
+        let command = String::from("GET FOO");
+
+        let parsed_command = connection::parse_command(&command).unwrap();
+
+        assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
+    }
 }
