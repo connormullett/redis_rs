@@ -1,7 +1,6 @@
 use std::{
     error::Error,
-    io::{self, Read},
-    net::Shutdown,
+    io::{self, BufRead, BufReader},
 };
 use std::{fmt, net};
 
@@ -43,19 +42,16 @@ impl<'a> Connection<'a> {
             }
         };
 
+        let mut reader = BufReader::new(stream);
+
         let mut response = String::new();
-        let _ = match stream.read_to_string(&mut response) {
+        let _ = match reader.read_line(&mut response) {
             Ok(value) => value,
             Err(e) => {
                 println!("ERROR :: {}", e);
                 return Err(RedisError::SocketConnectionError);
             }
         };
-
-        if stream.shutdown(Shutdown::Both).is_err() {
-            println!("Error shutting down socket");
-            return Err(RedisError::SocketConnectionError);
-        }
 
         Ok(response)
     }
