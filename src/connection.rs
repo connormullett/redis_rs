@@ -15,9 +15,13 @@ impl<'a> Connection<'a> {
         Connection { host, port }
     }
 
-    pub fn write(&self, command: &str) -> Result<String, RedisError> {
+    pub fn send(&self, command: &str) -> Result<String, RedisError> {
         let request = parse_command(command)?;
+        let response = self.write(request)?;
+        Ok(response)
+    }
 
+    fn write(&self, request: String) -> Result<String, RedisError> {
         let addr = format!("{}:{}", self.host, self.port);
         let mut stream = match TcpStream::connect(addr) {
             Ok(s) => s,
