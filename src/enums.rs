@@ -26,7 +26,7 @@ impl fmt::Display for RedisError {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ResponseType {
     SimpleString,
     Error,

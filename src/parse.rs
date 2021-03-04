@@ -65,6 +65,9 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
 
 #[cfg(test)]
 mod test {
+    use crate::enums::ResponseType;
+    use parse::parse_response;
+
     use crate::parse;
     #[test]
     fn test_parse_command() {
@@ -73,5 +76,15 @@ mod test {
         let parsed_command = parse::parse_command(&command).unwrap();
 
         assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
+    }
+
+    #[test]
+    fn test_parse_response() {
+        let data = "+OK\r\n";
+
+        let response = parse_response(data).unwrap();
+
+        assert_eq!(response.data, "OK");
+        assert_eq!(response.response_type, ResponseType::SimpleString)
     }
 }
