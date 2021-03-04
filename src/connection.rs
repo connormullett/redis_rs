@@ -1,11 +1,11 @@
-use std::{
-    error::Error,
-    io::{self, BufRead, BufReader},
-};
-use std::{fmt, net};
+use std::io::{self, BufRead, BufReader};
+use std::net;
 
 use io::Write;
 use net::TcpStream;
+
+use crate::enums::RedisError;
+use crate::parse::{parse_command, parse_response};
 
 pub struct Connection<'a> {
     host: &'a str,
@@ -55,57 +55,6 @@ impl<'a> Connection<'a> {
 
         Ok(response)
     }
-}
-
-custom_derive! {
-    #[allow(non_camel_case_types)]
-    #[derive(EnumFromStr)]
-    pub enum Commands {
-        get,
-        set,
-        echo,
-        ping
-    }
-}
-#[derive(Debug)]
-pub enum RedisError {
-    ParseError,
-    InvalidCommandError,
-    SocketConnectionError,
-}
-
-impl Error for RedisError {}
-
-impl fmt::Display for RedisError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "An error occured")
-    }
-}
-
-#[allow(dead_code)]
-fn parse_command(command: &str) -> Result<String, RedisError> {
-    let mut output = String::new();
-    let tokens: Vec<&str> = command.split(' ').collect();
-
-    if tokens.is_empty() {
-        return Err(RedisError::ParseError);
-    }
-
-    let command = tokens[0];
-
-    if command.to_lowercase().parse::<Commands>().is_err() {
-        return Err(RedisError::InvalidCommandError);
-    }
-
-    let token_count = tokens.len();
-    output.push_str(&format!("*{}\r\n", token_count));
-
-    for token in tokens {
-        let length = token.len();
-        output.push_str(&format!("${}\r\n{}\r\n", length, token));
-    }
-
-    Ok(output)
 }
 
 #[cfg(test)]
