@@ -21,6 +21,8 @@ impl<'a> Connection<'a> {
     pub fn send(&self, command: &str) -> Result<String, RedisError> {
         let request = parse_command(command)?;
         let response = self.write(request)?;
+        let response = parse_response(&response)?;
+
         Ok(response)
     }
 
@@ -60,14 +62,6 @@ impl<'a> Connection<'a> {
 #[cfg(test)]
 mod test {
     use crate::connection;
-    #[test]
-    fn test_parse_command() {
-        let command = String::from("GET FOO");
-
-        let parsed_command = connection::parse_command(&command).unwrap();
-
-        assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
-    }
 
     #[test]
     fn test_write() {

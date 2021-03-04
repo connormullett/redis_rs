@@ -30,3 +30,16 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
 pub fn parse_response(response: &str) -> Result<String, RedisError> {
     Ok(response.to_string())
 }
+
+#[cfg(test)]
+mod test {
+    use crate::parse;
+    #[test]
+    fn test_parse_command() {
+        let command = String::from("GET FOO");
+
+        let parsed_command = parse::parse_command(&command).unwrap();
+
+        assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
+    }
+}
