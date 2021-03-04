@@ -1,5 +1,9 @@
-use std::io::{self, Read};
-use std::net;
+use std::{
+    error::Error,
+    io::{self, Read},
+    net::Shutdown,
+};
+use std::{fmt, net};
 
 use io::Write;
 use net::TcpStream;
@@ -25,29 +29,36 @@ impl<'a> Connection<'a> {
         let addr = format!("{}:{}", self.host, self.port);
         let mut stream = match TcpStream::connect(addr) {
             Ok(s) => s,
-            Err(_) => return Err(RedisError::SocketConnectionError),
+            Err(e) => {
+                println!("ERROR :: {}", e);
+                return Err(RedisError::SocketConnectionError);
+            }
         };
 
         let _ = match stream.write(request.as_bytes()) {
             Ok(value) => value,
-            Err(_) => return Err(RedisError::SocketConnectionError),
+            Err(e) => {
+                println!("ERROR :: {}", e);
+                return Err(RedisError::SocketConnectionError);
+            }
         };
 
         let mut response = String::new();
         let _ = match stream.read_to_string(&mut response) {
             Ok(value) => value,
-            Err(_) => return Err(RedisError::SocketConnectionError),
+            Err(e) => {
+                println!("ERROR :: {}", e);
+                return Err(RedisError::SocketConnectionError);
+            }
         };
+
+        if stream.shutdown(Shutdown::Both).is_err() {
+            println!("Error shutting down socket");
+            return Err(RedisError::SocketConnectionError);
+        }
 
         Ok(response)
     }
-}
-
-#[derive(Debug)]
-pub enum RedisError {
-    ParseError,
-    InvalidCommandError,
-    SocketConnectionError,
 }
 
 custom_derive! {
@@ -56,7 +67,22 @@ custom_derive! {
     pub enum Commands {
         get,
         set,
-        echo
+        echo,
+        ping
+    }
+}
+#[derive(Debug)]
+pub enum RedisError {
+    ParseError,
+    InvalidCommandError,
+    SocketConnectionError,
+}
+
+impl Error for RedisError {}
+
+impl fmt::Display for RedisError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "An error occured")
     }
 }
 
@@ -90,12 +116,20 @@ fn parse_command(command: &str) -> Result<String, RedisError> {
 mod test {
     use crate::connection;
     #[test]
-
     fn test_parse_command() {
         let command = String::from("GET FOO");
 
         let parsed_command = connection::parse_command(&command).unwrap();
 
         assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
+    }
+
+    #[test]
+    fn test_write() {
+        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let command = "PING";
+
+        let response = connection.send(command);
+        assert!(response.is_ok())
     }
 }
