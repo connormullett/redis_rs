@@ -1,4 +1,4 @@
-use std::{error::Error, fmt, marker::PhantomData};
+use std::{error::Error, fmt};
 
 custom_derive! {
     #[allow(non_camel_case_types)]
@@ -26,12 +26,14 @@ impl fmt::Display for RedisError {
     }
 }
 
+#[derive(PartialEq)]
 pub enum ResponseType {
     SimpleString,
     Error,
     Integer,
     BulkString,
     Array,
+    Base,
 }
 
 pub struct Response {

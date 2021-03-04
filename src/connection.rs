@@ -4,7 +4,7 @@ use std::net;
 use io::Write;
 use net::TcpStream;
 
-use crate::enums::RedisError;
+use crate::enums::{RedisError, Response};
 use crate::parse::{parse_command, parse_response};
 
 pub struct Connection<'a> {
@@ -18,7 +18,7 @@ impl<'a> Connection<'a> {
         Connection { host, port }
     }
 
-    pub fn send(&self, command: &str) -> Result<String, RedisError> {
+    pub fn send(&self, command: &str) -> Result<Response, RedisError> {
         let request = parse_command(command)?;
         let response = self.write(request)?;
         let response = parse_response(&response)?;
