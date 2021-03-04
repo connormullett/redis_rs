@@ -87,4 +87,13 @@ mod test {
         assert_eq!(response.data, "OK");
         assert_eq!(response.response_type, ResponseType::SimpleString)
     }
+
+    #[test]
+    fn test_error_response() {
+        let data = "-ERROR\r\n";
+
+        let response = parse_response(data).unwrap();
+        assert_eq!(response.data, "ERROR");
+        assert_eq!(response.response_type, ResponseType::Error)
+    }
 }
