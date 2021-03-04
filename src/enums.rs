@@ -36,6 +36,7 @@ pub enum ResponseType {
     Base,
 }
 
+#[derive(Debug)]
 pub struct Response {
     pub response_type: ResponseType,
     pub data: String,

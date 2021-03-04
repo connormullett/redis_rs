@@ -76,6 +76,7 @@ mod test {
         let command = "PING";
 
         let response = connection.send(command);
+        println!("response :: {:?}", response);
         assert!(response.is_ok())
     }
 }
