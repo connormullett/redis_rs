@@ -44,8 +44,12 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
         _ => ResponseType::Base,
     };
 
-    if response_type == ResponseType::Base {
+    if let ResponseType::Base = response_type {
         return Err(RedisError::ParseError);
+    }
+
+    if let ResponseType::Array = response_type {
+        return parse_array_response(&data);
     }
 
     let mut cur_token = String::new();
@@ -61,6 +65,11 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     }
 
     Ok(Response::new(response_type, data))
+}
+
+fn parse_array_response(_data: &str) -> Result<Response, RedisError> {
+    // *2\r\n$
+    todo!()
 }
 
 #[cfg(test)]

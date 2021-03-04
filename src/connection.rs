@@ -47,13 +47,20 @@ impl<'a> Connection<'a> {
         let mut reader = BufReader::new(stream);
 
         let mut response = String::new();
-        let _ = match reader.read_line(&mut response) {
-            Ok(value) => value,
-            Err(e) => {
-                println!("ERROR :: {}", e);
-                return Err(RedisError::SocketConnectionError);
-            }
-        };
+
+        loop {
+            let mut buffer = String::new();
+            let _ = match reader.read_line(&mut buffer) {
+                Ok(0) => break,
+                Ok(value) => value,
+                Err(_) => {
+                    return Err(RedisError::SocketConnectionError);
+                }
+            };
+
+            response.push_str(&buffer);
+            buffer.clear();
+        }
 
         Ok(response)
     }
