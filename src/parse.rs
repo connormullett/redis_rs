@@ -67,11 +67,6 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     Ok(Response::new(response_type, data))
 }
 
-fn parse_array_response(_data: &str) -> Result<Response, RedisError> {
-    // *2\r\n$
-    todo!()
-}
-
 #[cfg(test)]
 mod test {
     use crate::enums::ResponseType;
