@@ -30,16 +30,14 @@ impl<'a> Connection<'a> {
         let addr = format!("{}:{}", self.host, self.port);
         let mut stream = match TcpStream::connect(addr) {
             Ok(s) => s,
-            Err(e) => {
-                println!("ERROR :: {}", e);
+            Err(_) => {
                 return Err(RedisError::SocketConnectionError);
             }
         };
 
         let _ = match stream.write(request.as_bytes()) {
             Ok(value) => value,
-            Err(e) => {
-                println!("ERROR :: {}", e);
+            Err(_) => {
                 return Err(RedisError::SocketConnectionError);
             }
         };
@@ -82,8 +80,9 @@ mod test {
         let c = connection::Connection::new(host, port);
         let command = "PING";
 
-        let response = c.send(command);
-        assert!(response.is_ok());
+        let response = c.send(command).unwrap();
+
+        assert_eq!(response.data, "PONG");
     }
 
     #[test]
@@ -93,5 +92,19 @@ mod test {
 
         let response = connection.write(command.to_string());
         assert!(response.is_ok());
+    }
+
+    #[test]
+    fn test_connection_test_multi_word_requests() {
+        let connection = connection::Connection::new("127.0.0.1", 6379);
+
+        let set_request = "SET\r\nFOO\r\nBAR";
+        let get_request = "GET\r\nFOO";
+
+        let set_response = connection.send(set_request);
+        assert!(set_response.is_ok());
+
+        let get_response = connection.send(get_request).unwrap();
+        assert_eq!(get_response.data, "BAR");
     }
 }
