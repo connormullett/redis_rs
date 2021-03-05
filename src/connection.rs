@@ -98,8 +98,8 @@ mod test {
     fn test_connection_test_multi_word_requests() {
         let connection = connection::Connection::new("127.0.0.1", 6379);
 
-        let set_request = "SET\r\nFOO\r\nBAR";
-        let get_request = "GET\r\nFOO";
+        let set_request = "SET FOO BAR";
+        let get_request = "GET FOO";
 
         let set_response = connection.send(set_request);
         assert!(set_response.is_ok());
