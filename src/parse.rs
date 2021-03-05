@@ -1,6 +1,5 @@
 use crate::enums::{Commands, RedisError, Response, ResponseType};
 
-#[allow(dead_code)]
 pub fn parse_command(command: &str) -> Result<String, RedisError> {
     let mut output = String::new();
     let tokens: Vec<&str> = command.split(' ').collect();
@@ -26,7 +25,6 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
     Ok(output)
 }
 
-#[allow(dead_code)]
 pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     let mut data = String::new();
 
@@ -46,10 +44,6 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
 
     if let ResponseType::Base = response_type {
         return Err(RedisError::ParseError);
-    }
-
-    if let ResponseType::Array = response_type {
-        return parse_array_response(&data);
     }
 
     let mut cur_token = String::new();

@@ -66,12 +66,32 @@ mod test {
     use crate::connection;
 
     #[test]
-    fn test_write() {
-        let connection = connection::Connection::new("127.0.0.1", 6379);
+    fn test_connection_new() {
+        let host = "127.0.0.1";
+        let port = 6379;
+        let c = connection::Connection::new(host, port);
+
+        assert_eq!(c.host, host);
+        assert_eq!(c.port, port);
+    }
+
+    #[test]
+    fn test_connection_send() {
+        let host = "127.0.0.1";
+        let port = 6379;
+        let c = connection::Connection::new(host, port);
         let command = "PING";
 
-        let response = connection.send(command);
-        println!("response :: {:?}", response);
-        assert!(response.is_ok())
+        let response = c.send(command);
+        assert!(response.is_ok());
+    }
+
+    #[test]
+    fn test_connection_write() {
+        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let command = "PING\r\n";
+
+        let response = connection.write(command.to_string());
+        assert!(response.is_ok());
     }
 }
