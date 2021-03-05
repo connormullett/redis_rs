@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, Read};
 use std::net;
 
 use io::Write;
@@ -44,22 +44,17 @@ impl<'a> Connection<'a> {
             }
         };
 
-        let mut reader = BufReader::new(stream);
-
         let mut response = String::new();
 
-        loop {
-            let mut buffer = String::new();
-            let _ = match reader.read_line(&mut buffer) {
-                Ok(0) => break,
-                Ok(value) => value,
-                Err(_) => {
-                    return Err(RedisError::SocketConnectionError);
-                }
-            };
+        // response is guaranteed to be less than 512 bytes
+        let mut buffer: [u8; 512] = [0; 512];
+        let _ = match stream.read(&mut buffer) {
+            Ok(value) => value,
+            Err(_) => return Err(RedisError::SocketConnectionError),
+        };
 
-            response.push_str(&buffer);
-            buffer.clear();
+        for char in buffer.iter() {
+            response.push(*char as char);
         }
 
         Ok(response)
