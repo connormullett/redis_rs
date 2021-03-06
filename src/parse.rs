@@ -1,4 +1,4 @@
-use crate::enums::{Commands, RedisError, Response, ResponseType};
+use crate::enums::{RedisError, Response, ResponseType};
 
 pub fn parse_command(command: &str) -> Result<String, RedisError> {
     let mut output = String::new();
@@ -6,12 +6,6 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
 
     if tokens.is_empty() {
         return Err(RedisError::ParseError);
-    }
-
-    let command = tokens[0];
-
-    if command.to_lowercase().parse::<Commands>().is_err() {
-        return Err(RedisError::InvalidCommandError);
     }
 
     let token_count = tokens.len();

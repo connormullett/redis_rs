@@ -1,21 +1,8 @@
 use std::{error::Error, fmt};
 
-custom_derive! {
-    #[allow(non_camel_case_types)]
-    #[derive(EnumFromStr)]
-    pub enum Commands {
-        get,
-        set,
-        echo,
-        ping,
-        list
-    }
-}
-
 #[derive(Debug)]
 pub enum RedisError {
     ParseError,
-    InvalidCommandError,
     SocketConnectionError,
 }
 
