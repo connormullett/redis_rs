@@ -1,6 +1,7 @@
 use crate::enums::{RedisError, ResponseType};
 use crate::response::Response;
 
+#[doc(hidden)]
 pub fn parse_command(command: &str) -> String {
     let mut output = String::new();
     let tokens: Vec<&str> = command.split(' ').collect();
@@ -15,6 +16,7 @@ pub fn parse_command(command: &str) -> String {
     output
 }
 
+#[doc(hidden)]
 fn map_response_type(leading_byte: char) -> ResponseType {
     match leading_byte {
         '*' => ResponseType::Array,
@@ -26,6 +28,7 @@ fn map_response_type(leading_byte: char) -> ResponseType {
     }
 }
 
+#[doc(hidden)]
 pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     let mut data = String::new();
 
@@ -82,10 +85,10 @@ mod test {
         let client = Connection::new("127.0.0.1", 6379);
 
         let raw_request = "set myvalue 'a custom value'";
-        let _ = client.send(raw_request);
+        let _ = client.send_raw_request(raw_request);
 
         let key = "myvalue";
-        let response = client.send_get(key).unwrap();
+        let response = client.get(key).unwrap();
 
         assert_eq!(response.data, "a custom value");
     }

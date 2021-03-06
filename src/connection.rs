@@ -32,7 +32,7 @@ impl<'a> Connection<'a> {
     }
 
     /// Send a raw request string to the redis server
-    pub fn send(&self, command: &str) -> Result<Response, RedisError> {
+    pub fn send_raw_request(&self, command: &str) -> Result<Response, RedisError> {
         let request = parse_command(command);
         let response = self.write(request)?;
         let response = parse_response(&response)?;
@@ -41,21 +41,21 @@ impl<'a> Connection<'a> {
     }
 
     /// Send a get request to fetch a specified `key`
-    pub fn send_get(&self, key: &str) -> Result<Response, RedisError> {
+    pub fn get(&self, key: &str) -> Result<Response, RedisError> {
         let request = format!("get {}", &key);
-        let response = self.send(&request)?;
+        let response = self.send_raw_request(&request)?;
         Ok(response)
     }
 
     /// Send an echo request. This is great for health checking the server
     pub fn echo(&self, string: &str) -> Result<Response, RedisError> {
         let request = format!("echo {}", &string);
-        let response = self.send(&request)?;
+        let response = self.send_raw_request(&request)?;
         Ok(response)
     }
 
     /// Send a set request to create a new `key` with value `value`
-    pub fn send_set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
+    pub fn set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!(
             "*3\r\n$3\r\nset\r\n${}\r\n{}\r\n${}\r\n{}\r\n",
             key.chars().count(),
@@ -65,6 +65,13 @@ impl<'a> Connection<'a> {
         );
         let response_data = self.write(request)?;
         let response = parse_response(&response_data)?;
+        Ok(response)
+    }
+
+    /// Ping the server. The response data should be PONG
+    pub fn ping(&self) -> Result<Response, RedisError> {
+        let request = "PING";
+        let response = self.send_raw_request(request)?;
         Ok(response)
     }
 
@@ -121,16 +128,23 @@ mod test {
     fn test_send_get() {
         let client = connection::Connection::new("127.0.0.1", 6379);
 
-        let response = client.send_get("FOO").unwrap();
+        let response = client.get("FOO").unwrap();
 
         assert_eq!(response.data, "BAR");
+    }
+
+    #[test]
+    fn test_ping() {
+        let client = connection::Connection::new("127.0.0.1", 6379);
+        let response = client.ping().unwrap();
+        assert_eq!(response.data, "PONG");
     }
 
     #[test]
     fn test_send_set() {
         let client = connection::Connection::new("127.0.0.1", 6379);
 
-        let response = client.send_set("BAZ", "QUUX").unwrap();
+        let response = client.set("BAZ", "QUUX").unwrap();
 
         assert_eq!(response.data, "OK");
     }
@@ -142,7 +156,7 @@ mod test {
         let c = connection::Connection::new(host, port);
         let command = "PING";
 
-        let response = c.send(command).unwrap();
+        let response = c.send_raw_request(command).unwrap();
 
         assert_eq!(response.data, "PONG");
     }
@@ -151,7 +165,7 @@ mod test {
 
     fn test_parse_send_quoted_set() {
         let connection = connection::Connection::new("127.0.0.1", 6379);
-        let response = connection.send_set("myvalue", "a custom value").unwrap();
+        let response = connection.set("myvalue", "a custom value").unwrap();
 
         assert_eq!(response.data, "OK");
         assert_eq!(response.response_type, ResponseType::SimpleString);
@@ -171,7 +185,7 @@ mod test {
         let connection = connection::Connection::new("127.0.0.1", 6379);
         let command = "list FOO";
 
-        let response = connection.send(command).unwrap();
+        let response = connection.send_raw_request(command).unwrap();
 
         assert_eq!(response.response_type, ResponseType::Error);
     }
@@ -183,10 +197,10 @@ mod test {
         let set_request = "SET FOO BAR";
         let get_request = "GET FOO";
 
-        let set_response = connection.send(set_request);
+        let set_response = connection.send_raw_request(set_request);
         assert!(set_response.is_ok());
 
-        let get_response = connection.send(get_request).unwrap();
+        let get_response = connection.send_raw_request(get_request).unwrap();
         assert_eq!(get_response.data, "BAR");
     }
 }
