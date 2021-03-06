@@ -1,4 +1,5 @@
-use crate::enums::{RedisError, Response, ResponseType};
+use crate::enums::{RedisError, ResponseType};
+use crate::response::Response;
 
 pub fn parse_command(command: &str) -> Result<String, RedisError> {
     let mut output = String::new();

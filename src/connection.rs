@@ -4,8 +4,9 @@ use std::net;
 use io::Write;
 use net::TcpStream;
 
-use crate::enums::{RedisError, Response};
+use crate::enums::RedisError;
 use crate::parse::{parse_command, parse_response};
+use crate::response::Response;
 
 /// Holds connection information for the redis server
 pub struct Connection<'a> {
