@@ -46,8 +46,15 @@ impl<'a> Connection<'a> {
 
     /// Send a set request to create a new `key` with value `value`
     pub fn send_set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
-        let request = format!("set {} '{}'", &key, &value);
-        let response = self.send(&request)?;
+        let request = format!(
+            "*3\r\n$3\r\nset\r\n${}\r\n{}\r\n${}\r\n{}\r\n",
+            key.chars().count(),
+            key,
+            value.chars().count(),
+            value
+        );
+        let response_data = self.write(request)?;
+        let response = parse_response(&response_data)?;
         Ok(response)
     }
 
@@ -128,6 +135,16 @@ mod test {
         let response = c.send(command).unwrap();
 
         assert_eq!(response.data, "PONG");
+    }
+
+    #[test]
+
+    fn test_parse_send_quoted_set() {
+        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let response = connection.send_set("myvalue", "a custom value").unwrap();
+
+        assert_eq!(response.data, "OK");
+        assert_eq!(response.response_type, ResponseType::SimpleString);
     }
 
     #[test]
