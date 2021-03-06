@@ -16,7 +16,6 @@ pub struct Connection<'a> {
     pub port: u32,
 }
 
-#[allow(dead_code)]
 impl<'a> Connection<'a> {
     /// Create a new Connection
     pub fn new(host: &'a str, port: u32) -> Connection {
