@@ -23,7 +23,7 @@ impl<'a> Connection<'a> {
 
     /// Send a raw request string to the redis server
     pub fn send(&self, command: &str) -> Result<Response, RedisError> {
-        let request = parse_command(command)?;
+        let request = parse_command(command);
         let response = self.write(request)?;
         let response = parse_response(&response)?;
 

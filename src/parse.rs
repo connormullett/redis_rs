@@ -1,48 +1,50 @@
-use crate::{enums::{RedisError, ResponseType}};
+use crate::enums::{RedisError, ResponseType};
 use crate::response::Response;
 
-pub fn parse_command(command: &str) -> Result<String, RedisError> {
+pub fn parse_command(command: &str) -> String {
     let mut output = String::new();
     let tokens: Vec<&str> = command.split(' ').collect();
 
-    if tokens.is_empty() {
-        return Err(RedisError::ParseError);
-    }
-
-    let token_count = tokens.len();
-    output.push_str(&format!("*{}\r\n", token_count));
+    output.push_str(&format!("*{}\r\n", tokens.len()));
 
     for token in tokens {
         let length = token.len();
         output.push_str(&format!("${}\r\n{}\r\n", length, token));
     }
 
-    Ok(output)
+    output
 }
 
-pub fn parse_response(response: &str) -> Result<Response, RedisError> {
-    let mut data = String::new();
-
-    let first_byte = match response.bytes().next() {
-        Some(value) => value,
-        None => return Err(RedisError::ParseError),
-    };
-
-    let response_type = match first_byte as char {
+fn map_response_type(leading_byte: char) -> ResponseType {
+    match leading_byte {
         '*' => ResponseType::Array,
         '+' => ResponseType::SimpleString,
         '-' => ResponseType::Error,
         ':' => ResponseType::Integer,
         '$' => ResponseType::BulkString,
         _ => ResponseType::Base,
+    }
+}
+
+pub fn parse_response(response: &str) -> Result<Response, RedisError> {
+    let mut data = String::new();
+
+    let mut bytes = response.bytes();
+
+    let first_byte = match bytes.next() {
+        Some(value) => value,
+        None => return Err(RedisError::ParseError),
     };
+
+    let response_type = map_response_type(first_byte as char);
 
     if let ResponseType::Base = response_type {
         return Err(RedisError::ParseError);
     }
 
     let mut cur_token = String::new();
-    for byte in response.bytes().skip(1) {
+
+    for byte in bytes {
         if let '\r' = byte as char {
             data.push_str(&cur_token);
             cur_token.clear();
@@ -54,7 +56,10 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
         }
     }
 
-    Ok(Response {response_type, data})
+    Ok(Response {
+        response_type,
+        data,
+    })
 }
 
 #[cfg(test)]
@@ -67,7 +72,7 @@ mod test {
     fn test_parse_command() {
         let command = String::from("GET FOO");
 
-        let parsed_command = parse::parse_command(&command).unwrap();
+        let parsed_command = parse::parse_command(&command);
 
         assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
     }
