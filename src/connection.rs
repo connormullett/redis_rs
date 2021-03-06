@@ -10,8 +10,10 @@ use crate::response::Response;
 
 /// Holds connection information for the redis server
 pub struct Connection<'a> {
-    host: &'a str,
-    port: u32,
+    /// The server host
+    pub host: &'a str,
+    /// The server port
+    pub port: u32,
 }
 
 #[allow(dead_code)]
@@ -19,6 +21,14 @@ impl<'a> Connection<'a> {
     /// Create a new Connection
     pub fn new(host: &'a str, port: u32) -> Connection {
         Connection { host, port }
+    }
+
+    /// Create a default connection on localhost:6379. Good for testing local connections
+    pub fn default() -> Connection<'a> {
+        Connection {
+            host: "127.0.0.1",
+            port: 6379,
+        }
     }
 
     /// Send a raw request string to the redis server
