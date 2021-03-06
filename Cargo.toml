@@ -10,5 +10,5 @@ repository = "https://github.com/connormullett/redis_rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-enum_derive="*"
-custom_derive="*"
+enum_derive="0.1.7"
+custom_derive="0.1.7"
