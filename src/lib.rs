@@ -1,5 +1,5 @@
-mod connection;
-mod enums;
+pub mod connection;
+pub mod enums;
 mod parse;
 
 #[macro_use]

@@ -7,6 +7,7 @@ use net::TcpStream;
 use crate::enums::{RedisError, Response};
 use crate::parse::{parse_command, parse_response};
 
+/// Holds connection information for the redis server
 pub struct Connection<'a> {
     host: &'a str,
     port: u32,
@@ -14,10 +15,12 @@ pub struct Connection<'a> {
 
 #[allow(dead_code)]
 impl<'a> Connection<'a> {
+    /// Create a new Connection
     pub fn new(host: &'a str, port: u32) -> Connection {
         Connection { host, port }
     }
 
+    /// Send a raw request string to the redis server
     pub fn send(&self, command: &str) -> Result<Response, RedisError> {
         let request = parse_command(command)?;
         let response = self.write(request)?;
@@ -26,6 +29,28 @@ impl<'a> Connection<'a> {
         Ok(response)
     }
 
+    /// Send a get request to fetch a specified `key`
+    pub fn send_get(&self, key: &str) -> Result<Response, RedisError> {
+        let request = format!("get {}", &key);
+        let response = self.send(&request)?;
+        Ok(response)
+    }
+
+    /// Send an echo request. This is great for health checking the server
+    pub fn echo(&self, string: &str) -> Result<Response, RedisError> {
+        let request = format!("echo {}", &string);
+        let response = self.send(&request)?;
+        Ok(response)
+    }
+
+    /// Send a set request to create a new `key` with value `value`
+    pub fn send_set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
+        let request = format!("set {} {}", &key, &value);
+        let response = self.send(&request)?;
+        Ok(response)
+    }
+
+    #[doc(hidden)]
     fn write(&self, request: String) -> Result<String, RedisError> {
         let addr = format!("{}:{}", self.host, self.port);
         let mut stream = match TcpStream::connect(addr) {

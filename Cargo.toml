@@ -2,7 +2,10 @@
 name = "redis_rs"
 version = "0.1.0"
 authors = ["connor <connormullett@gmail.com>"]
+description = "Simple redis client library"
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/connormullett/redis_rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
