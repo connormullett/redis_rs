@@ -15,6 +15,7 @@ impl fmt::Display for RedisError {
 }
 
 #[derive(Debug, PartialEq)]
+/// The type the response data will be according to RESP specification
 pub enum ResponseType {
     SimpleString,
     Error,
