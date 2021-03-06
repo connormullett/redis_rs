@@ -62,6 +62,7 @@ impl<'a> Connection<'a> {
 #[cfg(test)]
 mod test {
     use crate::connection;
+    use crate::enums::ResponseType;
 
     #[test]
     fn test_connection_new() {
@@ -92,6 +93,16 @@ mod test {
 
         let response = connection.write(command.to_string());
         assert!(response.is_ok());
+    }
+
+    #[test]
+    fn test_connection_error_response_should_match_expected() {
+        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let command = "list FOO";
+
+        let response = connection.send(command).unwrap();
+
+        assert_eq!(response.response_type, ResponseType::Error);
     }
 
     #[test]

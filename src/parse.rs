@@ -48,13 +48,14 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
 
     let mut cur_token = String::new();
     for byte in response.bytes().skip(1) {
-        if byte.is_ascii_alphabetic() {
-            cur_token.push(byte as char);
-        }
-
         if let '\r' = byte as char {
             data.push_str(&cur_token);
             cur_token.clear();
+            continue;
+        }
+
+        if byte.is_ascii_alphabetic() || byte == 0x20 {
+            cur_token.push(byte as char);
         }
     }
 

@@ -7,7 +7,8 @@ custom_derive! {
         get,
         set,
         echo,
-        ping
+        ping,
+        list
     }
 }
 
