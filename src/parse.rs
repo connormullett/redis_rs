@@ -1,4 +1,4 @@
-use crate::enums::{RedisError, ResponseType};
+use crate::{enums::{RedisError, ResponseType}};
 use crate::response::Response;
 
 pub fn parse_command(command: &str) -> Result<String, RedisError> {
@@ -54,7 +54,7 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
         }
     }
 
-    Ok(Response::new(response_type, data))
+    Ok(Response {response_type, data})
 }
 
 #[cfg(test)]
