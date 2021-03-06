@@ -58,7 +58,7 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
 
 #[cfg(test)]
 mod test {
-    use crate::enums::ResponseType;
+    use crate::{connection::Connection, enums::ResponseType};
     use parse::parse_response;
 
     use crate::parse;
@@ -69,6 +69,19 @@ mod test {
         let parsed_command = parse::parse_command(&command).unwrap();
 
         assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
+    }
+
+    #[test]
+    fn test_parse_quotes_handled_properly() {
+        let client = Connection::new("127.0.0.1", 6379);
+
+        let raw_request = "set myvalue 'a custom value'";
+        let _ = client.send(raw_request);
+
+        let key = "myvalue";
+        let response = client.send_get(key).unwrap();
+
+        assert_eq!(response.data, "a custom value");
     }
 
     #[test]

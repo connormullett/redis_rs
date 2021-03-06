@@ -45,7 +45,7 @@ impl<'a> Connection<'a> {
 
     /// Send a set request to create a new `key` with value `value`
     pub fn send_set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
-        let request = format!("set {} {}", &key, &value);
+        let request = format!("set {} '{}'", &key, &value);
         let response = self.send(&request)?;
         Ok(response)
     }
@@ -97,6 +97,24 @@ mod test {
 
         assert_eq!(c.host, host);
         assert_eq!(c.port, port);
+    }
+
+    #[test]
+    fn test_send_get() {
+        let client = connection::Connection::new("127.0.0.1", 6379);
+
+        let response = client.send_get("FOO").unwrap();
+
+        assert_eq!(response.data, "BAR");
+    }
+
+    #[test]
+    fn test_send_set() {
+        let client = connection::Connection::new("127.0.0.1", 6379);
+
+        let response = client.send_set("BAZ", "QUUX").unwrap();
+
+        assert_eq!(response.data, "OK");
     }
 
     #[test]
