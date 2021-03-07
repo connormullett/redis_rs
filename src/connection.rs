@@ -74,6 +74,13 @@ impl<'a> Connection<'a> {
         Ok(response)
     }
 
+    /// Delete a key value pair by key
+    pub fn delete(&self, key: &str) -> Result<Response, RedisError> {
+        let request = format!("del {}", key);
+        let response = self.send_raw_request(&request)?;
+        Ok(response)
+    }
+
     #[doc(hidden)]
     fn write(&self, request: String) -> Result<String, RedisError> {
         let addr = format!("{}:{}", self.host, self.port);
@@ -146,6 +153,18 @@ mod test {
         let response = client.set("BAZ", "QUUX").unwrap();
 
         assert_eq!(response.data, "OK");
+    }
+
+    #[test]
+    fn test_delete() {
+        let client = connection::Connection::new("127.0.0.1", 6379);
+        let key = "val";
+        let value = "value";
+        let _ = client.set(key, value);
+        let response = client.delete(key).unwrap();
+
+        assert_eq!(response.response_type, ResponseType::Integer);
+        assert_eq!(response.data.parse::<i32>().unwrap(), 1);
     }
 
     #[test]
