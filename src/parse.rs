@@ -1,4 +1,4 @@
-use crate::enums::{RedisError, ResponseType};
+use crate::enums::RedisError;
 use crate::response::Response;
 
 #[doc(hidden)]
@@ -17,33 +17,15 @@ pub fn parse_command(command: &str) -> String {
 }
 
 #[doc(hidden)]
-fn map_response_type(leading_byte: char) -> ResponseType {
-    match leading_byte {
-        '*' => ResponseType::Array,
-        '+' => ResponseType::SimpleString,
-        '-' => ResponseType::Error,
-        ':' => ResponseType::Integer,
-        '$' => ResponseType::BulkString,
-        _ => ResponseType::Base,
-    }
-}
-
-#[doc(hidden)]
 pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     let mut data = String::new();
 
     let mut bytes = response.bytes();
 
-    let first_byte = match bytes.next() {
+    let _first_byte = match bytes.next() {
         Some(value) => value,
         None => return Err(RedisError::ParseError),
     };
-
-    let response_type = map_response_type(first_byte as char);
-
-    if let ResponseType::Base = response_type {
-        return Err(RedisError::ParseError);
-    }
 
     let mut cur_token = String::new();
 
@@ -59,15 +41,13 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
         }
     }
 
-    Ok(Response {
-        response_type,
-        data,
-    })
+    Ok(Response::Base)
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{connection::Connection, enums::ResponseType};
+    use crate::connection::Connection;
+    use crate::response::Response;
     use parse::parse_response;
 
     use crate::parse;
@@ -90,7 +70,10 @@ mod test {
         let key = "myvalue";
         let response = client.get(key).unwrap();
 
-        assert_eq!(response.data, "a custom value");
+        assert_eq!(
+            response,
+            Response::SimpleString(String::from("a custom value"))
+        );
     }
 
     #[test]
@@ -99,8 +82,7 @@ mod test {
 
         let response = parse_response(data).unwrap();
 
-        assert_eq!(response.data, "OK");
-        assert_eq!(response.response_type, ResponseType::SimpleString)
+        assert_eq!(response, Response::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -108,7 +90,6 @@ mod test {
         let data = "-ERROR\r\n";
 
         let response = parse_response(data).unwrap();
-        assert_eq!(response.data, "ERROR");
-        assert_eq!(response.response_type, ResponseType::Error)
+        assert_eq!(response, Response::Error(String::from("ERROR")));
     }
 }

@@ -118,7 +118,7 @@ impl<'a> Connection<'a> {
 #[cfg(test)]
 mod test {
     use crate::connection;
-    use crate::enums::ResponseType;
+    use crate::response::Response;
 
     #[test]
     fn test_connection_new() {
@@ -136,14 +136,14 @@ mod test {
 
         let response = client.get("FOO").unwrap();
 
-        assert_eq!(response.data, "BAR");
+        assert_eq!(response, Response::SimpleString(String::from("BAR")));
     }
 
     #[test]
     fn test_ping() {
         let client = connection::Connection::new("127.0.0.1", 6379);
         let response = client.ping().unwrap();
-        assert_eq!(response.data, "PONG");
+        assert_eq!(response, Response::SimpleString(String::from("PONG")));
     }
 
     #[test]
@@ -152,7 +152,7 @@ mod test {
 
         let response = client.set("BAZ", "QUUX").unwrap();
 
-        assert_eq!(response.data, "OK");
+        assert_eq!(response, Response::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -163,8 +163,7 @@ mod test {
         let _ = client.set(key, value);
         let response = client.delete(key).unwrap();
 
-        assert_eq!(response.response_type, ResponseType::Integer);
-        assert_eq!(response.data.parse::<i32>().unwrap(), 1);
+        assert_eq!(response, Response::Integer(1));
     }
 
     #[test]
@@ -176,7 +175,7 @@ mod test {
 
         let response = c.send_raw_request(command).unwrap();
 
-        assert_eq!(response.data, "PONG");
+        assert_eq!(response, Response::SimpleString(String::from("PONG")));
     }
 
     #[test]
@@ -185,8 +184,7 @@ mod test {
         let connection = connection::Connection::new("127.0.0.1", 6379);
         let response = connection.set("myvalue", "a custom value").unwrap();
 
-        assert_eq!(response.data, "OK");
-        assert_eq!(response.response_type, ResponseType::SimpleString);
+        assert_eq!(response, Response::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -205,7 +203,7 @@ mod test {
 
         let response = connection.send_raw_request(command).unwrap();
 
-        assert_eq!(response.response_type, ResponseType::Error);
+        assert_ne!(response, Response::Base);
     }
 
     #[test]
@@ -219,6 +217,6 @@ mod test {
         assert!(set_response.is_ok());
 
         let get_response = connection.send_raw_request(get_request).unwrap();
-        assert_eq!(get_response.data, "BAR");
+        assert_eq!(get_response, Response::SimpleString(String::from("BAR")));
     }
 }
