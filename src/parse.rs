@@ -79,16 +79,28 @@ fn parse_integer(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
     Ok(Integer(parsed_integer))
 }
 
-fn parse_bulk_string(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_bulk_string(_bytes: &std::str::Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
-fn parse_array(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_array(_bytes: &std::str::Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
-fn parse_simple_string(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
-    todo!()
+fn parse_simple_string(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
+    let mut string = String::new();
+
+    while let Some(c) = bytes.next() {
+        let c = c as char;
+
+        if let '\r' = c {
+            break;
+        }
+
+        string.push(c);
+    }
+
+    Ok(SimpleString(string))
 }
 
 #[cfg(test)]
