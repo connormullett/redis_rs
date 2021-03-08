@@ -44,12 +44,14 @@ pub fn parse_response(response: String) -> Result<Response, RedisError> {
     Ok(response?)
 }
 
+#[doc(hidden)]
 fn parse_error(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
     let error_string = read_to_carriage_return(bytes);
 
     Ok(Error(error_string))
 }
 
+#[doc(hidden)]
 fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
     let integer_value = read_to_carriage_return(bytes);
 
@@ -61,6 +63,7 @@ fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
     Ok(Integer(parsed_integer))
 }
 
+#[doc(hidden)]
 fn parse_bulk_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
     let integer_value = read_to_carriage_return(bytes);
     let mut string = String::new();
@@ -83,15 +86,18 @@ fn parse_bulk_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
     Ok(BulkString(string))
 }
 
+#[doc(hidden)]
 fn parse_array(_bytes: &mut Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
+#[doc(hidden)]
 fn parse_simple_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
     let string = read_to_carriage_return(bytes);
     Ok(SimpleString(string))
 }
 
+#[doc(hidden)]
 fn read_to_carriage_return(bytes: &mut Bytes) -> String {
     let mut string = String::new();
 
