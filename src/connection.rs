@@ -31,10 +31,10 @@ impl<'a> Connection<'a> {
     }
 
     /// Send a raw request string to the redis server
-    pub fn send_raw_request(&self, command: &str) -> Result<Response, RedisError> {
+    pub fn send_raw_request(&self, command: String) -> Result<Response, RedisError> {
         let request = parse_command(command);
         let response = self.write(request)?;
-        let response = parse_response(&response)?;
+        let response: Response = parse_response(response)?;
 
         Ok(response)
     }
@@ -42,14 +42,14 @@ impl<'a> Connection<'a> {
     /// Send a get request to fetch a specified `key`
     pub fn get(&self, key: &str) -> Result<Response, RedisError> {
         let request = format!("get {}", &key);
-        let response = self.send_raw_request(&request)?;
+        let response = self.send_raw_request(request)?;
         Ok(response)
     }
 
     /// Send an echo request. This is great for health checking the server
     pub fn echo(&self, string: &str) -> Result<Response, RedisError> {
         let request = format!("echo {}", &string);
-        let response = self.send_raw_request(&request)?;
+        let response = self.send_raw_request(request)?;
         Ok(response)
     }
 
@@ -62,14 +62,16 @@ impl<'a> Connection<'a> {
             value.chars().count(),
             value
         );
+
         let response_data = self.write(request)?;
-        let response = parse_response(&response_data)?;
+        let response = parse_response(response_data)?;
+
         Ok(response)
     }
 
     /// Ping the server. The response data should be PONG
     pub fn ping(&self) -> Result<Response, RedisError> {
-        let request = "PING";
+        let request = String::from("PING");
         let response = self.send_raw_request(request)?;
         Ok(response)
     }
@@ -77,7 +79,8 @@ impl<'a> Connection<'a> {
     /// Delete a key value pair by key
     pub fn delete(&self, key: &str) -> Result<Response, RedisError> {
         let request = format!("del {}", key);
-        let response = self.send_raw_request(&request)?;
+        let response = self.send_raw_request(request)?;
+
         Ok(response)
     }
 
@@ -171,7 +174,7 @@ mod test {
         let host = "127.0.0.1";
         let port = 6379;
         let c = connection::Connection::new(host, port);
-        let command = "PING";
+        let command = String::from("PING");
 
         let response = c.send_raw_request(command).unwrap();
 
@@ -199,7 +202,7 @@ mod test {
     #[test]
     fn test_connection_error_response_should_match_expected() {
         let connection = connection::Connection::new("127.0.0.1", 6379);
-        let command = "list FOO";
+        let command = String::from("list FOO");
 
         let response = connection.send_raw_request(command).unwrap();
 
@@ -210,8 +213,8 @@ mod test {
     fn test_connection_test_multi_word_requests() {
         let connection = connection::Connection::new("127.0.0.1", 6379);
 
-        let set_request = "SET FOO BAR";
-        let get_request = "GET FOO";
+        let set_request = String::from("SET FOO BAR");
+        let get_request = String::from("GET FOO");
 
         let set_response = connection.send_raw_request(set_request);
         assert!(set_response.is_ok());
