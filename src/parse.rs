@@ -136,7 +136,7 @@ mod test {
 
         assert_eq!(
             response,
-            Response::SimpleString(String::from("a custom value"))
+            Response::BulkString(String::from("a custom value"))
         );
     }
 

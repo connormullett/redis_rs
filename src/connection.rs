@@ -139,7 +139,11 @@ mod test {
 
         let response = client.get("FOO").unwrap();
 
-        assert_eq!(response, Response::SimpleString(String::from("BAR")));
+        if let Response::SimpleString(value) = &response {
+            println!("value {}", value);
+        }
+
+        assert_eq!(response, Response::BulkString(String::from("BAR")));
     }
 
     #[test]
@@ -210,6 +214,6 @@ mod test {
         assert!(set_response.is_ok());
 
         let get_response = connection.send_raw_request(get_request).unwrap();
-        assert_eq!(get_response, Response::SimpleString(String::from("BAR")));
+        assert_eq!(get_response, Response::BulkString(String::from("BAR")));
     }
 }
