@@ -1,3 +1,4 @@
+use std::str::Bytes;
 use crate::enums::RedisError;
 pub use crate::response::{
     Response,
@@ -58,7 +59,7 @@ fn parse_error(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
     Ok(Error(error_string))
 }
 
-fn parse_integer(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
     let mut integer_value = String::new();
 
     while let Some(c) = bytes.next() {
@@ -79,15 +80,15 @@ fn parse_integer(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
     Ok(Integer(parsed_integer))
 }
 
-fn parse_bulk_string(_bytes: &std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_bulk_string(_bytes: &mut Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
-fn parse_array(_bytes: &std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_array(_bytes: &mut Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
-fn parse_simple_string(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_simple_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
     let mut string = String::new();
 
     while let Some(c) = bytes.next() {
@@ -102,6 +103,8 @@ fn parse_simple_string(bytes: &mut std::str::Bytes) -> Result<Response, RedisErr
 
     Ok(SimpleString(string))
 }
+
+fn read_to_carriage_return()
 
 #[cfg(test)]
 mod test {
