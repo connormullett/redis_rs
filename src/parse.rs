@@ -25,8 +25,6 @@ pub fn parse_response(response: String) -> Result<Response, RedisError> {
         None => return Err(RedisError::ParseError),
     };
 
-    let mut cur_token = String::new();
-
     let response = match first_byte as char {
         '+' => parse_simple_string(&bytes),
         '-' => parse_error(&bytes),
@@ -36,14 +34,14 @@ pub fn parse_response(response: String) -> Result<Response, RedisError> {
         _ => Ok(Response::Base),
     };
 
-    Ok(Response::Base)
+    Ok(response?)
 }
 
 fn parse_error(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
-fn parse_integer(bytes: &std::str::Bytes) ->Result<Response, RedisError>  {
+fn parse_integer(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
     todo!()
 }
 
