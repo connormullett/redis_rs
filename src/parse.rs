@@ -61,8 +61,26 @@ fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
     Ok(Integer(parsed_integer))
 }
 
-fn parse_bulk_string(_bytes: &mut Bytes) -> Result<Response, RedisError> {
-    todo!()
+fn parse_bulk_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
+    let integer_value = read_to_carriage_return(bytes);
+    let mut string = String::new();
+
+    let mut num_bytes: i32 = match integer_value.parse() {
+        Ok(value) => value,
+        Err(_) => return Err(RedisError::ParseError),
+    };
+
+    for byte in bytes.skip(1) {
+        if num_bytes == 0 {
+            break;
+        }
+
+        string.push(byte as char);
+
+        num_bytes -= 1;
+    }
+
+    Ok(BulkString(string))
 }
 
 fn parse_array(_bytes: &mut Bytes) -> Result<Response, RedisError> {
