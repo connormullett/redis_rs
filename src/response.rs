@@ -11,6 +11,4 @@ pub enum Response {
     BulkString(String),
     /// An array
     Array(String),
-    #[doc(hidden)]
-    Base,
 }

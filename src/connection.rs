@@ -200,16 +200,6 @@ mod test {
     }
 
     #[test]
-    fn test_connection_error_response_should_match_expected() {
-        let connection = connection::Connection::new("127.0.0.1", 6379);
-        let command = String::from("list FOO");
-
-        let response = connection.send_raw_request(command).unwrap();
-
-        assert_ne!(response, Response::Base);
-    }
-
-    #[test]
     fn test_connection_test_multi_word_requests() {
         let connection = connection::Connection::new("127.0.0.1", 6379);
 

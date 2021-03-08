@@ -1,5 +1,8 @@
 use crate::enums::RedisError;
-use crate::response::Response;
+pub use crate::response::{
+    Response,
+    Response::{Array, BulkString, Error, Integer, SimpleString},
+};
 
 #[doc(hidden)]
 pub fn parse_command(command: String) -> String {
@@ -26,23 +29,54 @@ pub fn parse_response(response: String) -> Result<Response, RedisError> {
     };
 
     let response = match first_byte as char {
-        '+' => parse_simple_string(&bytes),
-        '-' => parse_error(&bytes),
-        ':' => parse_integer(&bytes),
-        '$' => parse_bulk_string(&bytes),
-        '*' => parse_array(&bytes),
-        _ => Ok(Response::Base),
+        '+' => parse_simple_string(&mut bytes),
+        '-' => parse_error(&mut bytes),
+        ':' => parse_integer(&mut bytes),
+        '$' => parse_bulk_string(&mut bytes),
+        '*' => parse_array(&mut bytes),
+        _ => Ok(Error(format!(
+            "unexpected byte {}, in response",
+            first_byte
+        ))),
     };
 
     Ok(response?)
 }
 
-fn parse_error(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
-    todo!()
+fn parse_error(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
+    let mut error_string = String::new();
+
+    while let Some(c) = bytes.next() {
+        let c = c as char;
+        if let '\r' = c {
+            break;
+        }
+
+        error_string.push(c);
+    }
+
+    Ok(Error(error_string))
 }
 
-fn parse_integer(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
-    todo!()
+fn parse_integer(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
+    let mut integer_value = String::new();
+
+    while let Some(c) = bytes.next() {
+        let c = c as char;
+
+        if let '\r' = c {
+            break;
+        }
+
+        integer_value.push(c);
+    }
+
+    let parsed_integer: i32 = match integer_value.parse() {
+        Ok(value) => value,
+        Err(_) => return Err(RedisError::ParseError),
+    };
+
+    Ok(Integer(parsed_integer))
 }
 
 fn parse_bulk_string(bytes: &std::str::Bytes) -> Result<Response, RedisError> {
