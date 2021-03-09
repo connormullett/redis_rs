@@ -39,14 +39,14 @@ impl Connection {
         Ok(response)
     }
 
-    /// Append `value` to the value related to `key`
+    /// Append `value` to the value related to `key`. Returns number of bytes read as integer
     pub fn append(&self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!("append {} '{}'", key, value);
         let response = self.send_raw_request(request)?;
         Ok(response)
     }
 
-    /// Send a get request to fetch a specified `key`
+    /// Send a get request to fetch a specified `key`. Returns the value as a Response
     pub fn get(&self, key: &str) -> Result<Response, RedisError> {
         let request = format!("get {}", &key);
         let response = self.send_raw_request(request)?;
@@ -54,13 +54,15 @@ impl Connection {
     }
 
     /// Send an echo request. This is great for health checking the server
+    /// Returns the string sent as a simple string
     pub fn echo(&self, string: &str) -> Result<Response, RedisError> {
         let request = format!("echo {}", &string);
         let response = self.send_raw_request(request)?;
         Ok(response)
     }
 
-    /// Send a set request to create a new `key` with value `value`
+    /// Send a set request to create a new `key` with value `value`.
+    /// Returns OK as a SimpleString on success
     pub fn set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!(
             "*3\r\n$3\r\nset\r\n${}\r\n{}\r\n${}\r\n{}\r\n",
@@ -77,6 +79,7 @@ impl Connection {
     }
 
     /// Ping the server. The response data should be PONG
+    /// Returns "PONG" as a SimpleString on success
     pub fn ping(&self) -> Result<Response, RedisError> {
         let request = String::from("PING");
         let response = self.send_raw_request(request)?;
@@ -84,7 +87,9 @@ impl Connection {
     }
 
     /// Delete a key value pair by key
+    /// Returns the number of keys removed
     pub fn delete(&self, key: &str) -> Result<Response, RedisError> {
+        // TODO: accept array of strings
         let request = format!("del {}", key);
         let response = self.send_raw_request(request)?;
 
@@ -146,6 +151,14 @@ mod test {
 
         assert_eq!(c.host, host);
         assert_eq!(c.port, port);
+    }
+
+    #[test]
+    fn test_append() {
+        let client = connection::Connection::new(String::from("127.0.0.1"), 6379);
+        let response = client.append("BAZ", "FOO").unwrap();
+
+        assert_eq!(response, Response::Integer(9));
     }
 
     #[test]
