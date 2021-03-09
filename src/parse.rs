@@ -26,7 +26,11 @@ pub fn parse_response(response: String) -> Result<Response, RedisError> {
 
     let first_byte = match bytes.next() {
         Some(value) => value,
-        None => return Err(RedisError::ParseError),
+        None => {
+            return Err(RedisError::ParseError(
+                "Error reading response data".to_string(),
+            ))
+        }
     };
 
     let response = match first_byte as char {
@@ -57,7 +61,12 @@ fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
 
     let parsed_integer: i32 = match integer_value.parse() {
         Ok(value) => value,
-        Err(_) => return Err(RedisError::ParseError),
+        Err(_) => {
+            return Err(RedisError::ParseError(format!(
+                "Error parsing {} as integer",
+                integer_value
+            )))
+        }
     };
 
     Ok(Integer(parsed_integer))
@@ -70,7 +79,12 @@ fn parse_bulk_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
 
     let mut num_bytes: i32 = match integer_value.parse() {
         Ok(value) => value,
-        Err(_) => return Err(RedisError::ParseError),
+        Err(_) => {
+            return Err(RedisError::ParseError(format!(
+                "Error parsing {} to integer",
+                integer_value.clone()
+            )))
+        }
     };
 
     for byte in bytes.skip(1) {

@@ -1,14 +1,11 @@
-use std::{error::Error, fmt};
+use std::fmt;
 
 #[derive(Debug)]
 /// An error type that describes a client error
 pub enum RedisError {
-    ParseError,
-    SocketConnectionError,
+    ParseError(String),
+    SocketConnectionError(String),
 }
-
-#[doc(hidden)]
-impl Error for RedisError {}
 
 #[doc(hidden)]
 impl fmt::Display for RedisError {

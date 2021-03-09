@@ -39,6 +39,13 @@ impl Connection {
         Ok(response)
     }
 
+    /// Append `value` to the value related to `key`
+    pub fn append(&self, key: &str, value: &str) -> Result<Response, RedisError> {
+        let request = format!("append {} '{}'", key, value);
+        let response = self.send_raw_request(request)?;
+        Ok(response)
+    }
+
     /// Send a get request to fetch a specified `key`
     pub fn get(&self, key: &str) -> Result<Response, RedisError> {
         let request = format!("get {}", &key);
@@ -90,14 +97,18 @@ impl Connection {
         let mut stream = match TcpStream::connect(addr) {
             Ok(s) => s,
             Err(_) => {
-                return Err(RedisError::SocketConnectionError);
+                return Err(RedisError::SocketConnectionError(
+                    "Can not connect to socket".to_string(),
+                ));
             }
         };
 
         let _ = match stream.write(request.as_bytes()) {
             Ok(value) => value,
             Err(_) => {
-                return Err(RedisError::SocketConnectionError);
+                return Err(RedisError::SocketConnectionError(
+                    "Error writing to stream".to_string(),
+                ));
             }
         };
 
@@ -107,7 +118,11 @@ impl Connection {
         let mut buffer: [u8; 512] = [0; 512];
         let _ = match stream.read(&mut buffer) {
             Ok(value) => value,
-            Err(_) => return Err(RedisError::SocketConnectionError),
+            Err(_) => {
+                return Err(RedisError::SocketConnectionError(
+                    "Error reading from stream".to_string(),
+                ))
+            }
         };
 
         for char in buffer.iter() {
