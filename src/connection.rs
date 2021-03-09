@@ -86,11 +86,15 @@ impl Connection {
         Ok(response)
     }
 
-    /// Delete a key value pair by key
+    /// Delete keys from the server
     /// Returns the number of keys removed
-    pub fn delete(&self, key: &str) -> Result<Response, RedisError> {
-        // TODO: accept array of strings
-        let request = format!("del {}", key);
+    pub fn delete(&self, keys: Vec<&str>) -> Result<Response, RedisError> {
+        let mut request = String::from("del ");
+
+        for key in keys {
+            request.push_str(&format!("{} ", key));
+        }
+
         let response = self.send_raw_request(request)?;
 
         Ok(response)
@@ -193,12 +197,25 @@ mod test {
     #[test]
     fn test_delete() {
         let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
-        let key = "val";
+        let key = vec!["val"];
         let value = "value";
-        let _ = client.set(key, value);
+        let _ = client.set(key[0], value);
         let response = client.delete(key).unwrap();
 
         assert_eq!(response, Response::Integer(1));
+    }
+
+    #[test]
+    fn test_multi_delete() {
+        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let _ = client.set("bar1", "bar");
+        let _ = client.set("bar2", "bar");
+
+        let keys = vec!["bar1", "bar2"];
+
+        let response = client.delete(keys).unwrap();
+
+        assert_eq!(response, Response::Integer(2));
     }
 
     #[test]
