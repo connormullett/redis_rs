@@ -1,6 +1,6 @@
 [package]
 name = "redis_rs"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["connor <connormullett@gmail.com>"]
 description = "Simple redis client library"
 edition = "2018"
