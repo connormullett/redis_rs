@@ -9,23 +9,23 @@ use crate::parse::{parse_command, parse_response};
 use crate::response::Response;
 
 /// Holds connection information for the redis server
-pub struct Connection<'a> {
+pub struct Connection {
     /// The server host
-    pub host: &'a str,
+    pub host: String,
     /// The server port
     pub port: u32,
 }
 
-impl<'a> Connection<'a> {
+impl Connection {
     /// Create a new Connection
-    pub fn new(host: &'a str, port: u32) -> Connection {
+    pub fn new(host: String, port: u32) -> Connection {
         Connection { host, port }
     }
 
     /// Create a default connection on localhost:6379. Good for testing local connections
-    pub fn default() -> Connection<'a> {
+    pub fn default() -> Connection {
         Connection {
-            host: "127.0.0.1",
+            host: String::from("127.0.0.1"),
             port: 6379,
         }
     }
@@ -125,9 +125,9 @@ mod test {
 
     #[test]
     fn test_connection_new() {
-        let host = "127.0.0.1";
+        let host = String::from("127.0.0.1");
         let port = 6379;
-        let c = connection::Connection::new(host, port);
+        let c = connection::Connection::new(host.clone(), port);
 
         assert_eq!(c.host, host);
         assert_eq!(c.port, port);
@@ -135,7 +135,7 @@ mod test {
 
     #[test]
     fn test_send_get() {
-        let client = connection::Connection::new("127.0.0.1", 6379);
+        let client = connection::Connection::new(String::from("127.0.0.1"), 6379);
 
         let response = client.get("FOO").unwrap();
 
@@ -148,14 +148,14 @@ mod test {
 
     #[test]
     fn test_ping() {
-        let client = connection::Connection::new("127.0.0.1", 6379);
+        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
         let response = client.ping().unwrap();
         assert_eq!(response, Response::SimpleString(String::from("PONG")));
     }
 
     #[test]
     fn test_send_set() {
-        let client = connection::Connection::new("127.0.0.1", 6379);
+        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
 
         let response = client.set("BAZ", "QUUX").unwrap();
 
@@ -164,7 +164,7 @@ mod test {
 
     #[test]
     fn test_delete() {
-        let client = connection::Connection::new("127.0.0.1", 6379);
+        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
         let key = "val";
         let value = "value";
         let _ = client.set(key, value);
@@ -177,7 +177,7 @@ mod test {
     fn test_connection_send() {
         let host = "127.0.0.1";
         let port = 6379;
-        let c = connection::Connection::new(host, port);
+        let c = connection::Connection::new(host.to_string(), port);
         let command = String::from("PING");
 
         let response = c.send_raw_request(command).unwrap();
@@ -188,7 +188,7 @@ mod test {
     #[test]
 
     fn test_parse_send_quoted_set() {
-        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let connection = connection::Connection::new("127.0.0.1".to_string(), 6379);
         let response = connection.set("myvalue", "a custom value").unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("OK")));
@@ -196,7 +196,7 @@ mod test {
 
     #[test]
     fn test_connection_write() {
-        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let connection = connection::Connection::new("127.0.0.1".to_string(), 6379);
         let command = "PING\r\n";
 
         let response = connection.write(command.to_string());
@@ -205,7 +205,7 @@ mod test {
 
     #[test]
     fn test_connection_test_multi_word_requests() {
-        let connection = connection::Connection::new("127.0.0.1", 6379);
+        let connection = connection::Connection::new("127.0.0.1".to_string(), 6379);
 
         let set_request = String::from("SET FOO BAR");
         let get_request = String::from("GET FOO");
