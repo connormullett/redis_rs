@@ -100,6 +100,14 @@ impl Connection {
         Ok(response)
     }
 
+    pub fn copy(&self, source: &str, destination: &str) -> Result<Response, RedisError> {
+        let request = format!("copy {} {}", source, destination);
+
+        let response = self.send_raw_request(request)?;
+
+        Ok(response)
+    }
+
     #[doc(hidden)]
     fn write(&self, request: String) -> Result<String, RedisError> {
         let addr = format!("{}:{}", self.host, self.port);
@@ -160,9 +168,10 @@ mod test {
     #[test]
     fn test_append() {
         let client = connection::Connection::new(String::from("127.0.0.1"), 6379);
-        let response = client.append("BAZ", "FOO").unwrap();
+        let _ = client.set("append_value", "value");
+        let response = client.append("append_value", "foo").unwrap();
 
-        assert_eq!(response, Response::Integer(9));
+        assert_eq!(response, Response::Integer(10));
     }
 
     #[test]
@@ -216,6 +225,20 @@ mod test {
         let response = client.delete(keys).unwrap();
 
         assert_eq!(response, Response::Integer(2));
+    }
+
+    #[test]
+    fn test_copy() {
+        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+
+        let _ = client.set("bar1", "bar");
+        let _ = client.delete(vec!["new_bar"]);
+
+        let response = client.copy("bar1", "new_bar").unwrap();
+        let get_response = client.get("new_bar").unwrap();
+
+        assert_eq!(response, Response::Integer(1));
+        assert_eq!(get_response, Response::BulkString("bar".to_string()));
     }
 
     #[test]
