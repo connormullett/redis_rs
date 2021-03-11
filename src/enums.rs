@@ -3,7 +3,9 @@ use std::fmt;
 #[derive(Debug)]
 /// An error type that describes a client error
 pub enum RedisError {
+    /// Error variant used when a request/response fails to parse
     ParseError(String),
+    /// Error variant used when an error occurs when reading/writing from/to a socket
     SocketConnectionError(String),
 }
 
