@@ -7,11 +7,16 @@
 //! Examples
 //! Create a connection and send requests
 //!```
-//!let client = Connection::new("127.0.0.1", 6379);
+//!extern crate redis_rs;
+//!use redis_rs::connection::Connection;
+//!use redis_rs::response::Response;
+//!
+//!let host = String::from("127.0.0.1");
+//!let client = Connection::new(host, 6379);
 //!// send a request
-//!let _ = client.send_raw_request("SET FOO BAR");
+//!let _ = client.send_raw_request("SET FOO BAR".to_string());
 //!// or use a supported command
-//!let response = client.get("FOO");
+//!let response = client.get("FOO").unwrap();
 //!
 //!// match against the response to extract the value
 //!if let Response::BulkString(value) = response {
