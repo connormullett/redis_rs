@@ -12,7 +12,7 @@
 //! use redis_rs::connection::Connection;
 //! use redis_rs::response::Response;
 //!
-//! let host = String::from("127.0.0.1");
+//! let host = "127.0.0.1";
 //! let port = 6379;
 //! let addr = format!("{}:{}", host, port);
 //! let stream = TcpStream::connect(addr).unwrap();
