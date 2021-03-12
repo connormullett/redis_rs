@@ -12,7 +12,7 @@
 //!use redis_rs::response::Response;
 //!
 //!let host = String::from("127.0.0.1");
-//!let client = Connection::new(host, 6379);
+//!let mut client = Connection::new(host, 6379, None).unwrap();
 //!// send a request
 //!let _ = client.send_raw_request("SET FOO BAR".to_string());
 //!// or use a supported command

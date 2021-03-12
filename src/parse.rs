@@ -146,7 +146,7 @@ mod test {
 
     #[test]
     fn test_parse_quotes_handled_properly() {
-        let client = Connection::new("127.0.0.1".to_string(), 6379);
+        let mut client = Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
 
         let raw_request = String::from("set myvalue 'a custom value'");
         let _ = client.send_raw_request(raw_request);

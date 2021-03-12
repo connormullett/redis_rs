@@ -15,24 +15,27 @@ pub struct Connection {
     /// The server port
     pub port: u32,
     /// The TCP stream to communicate with the server
-    pub stream: Option<TcpStream>,
+    pub stream: TcpStream,
 }
 
 impl Connection {
     /// Create a new Connection
-    pub fn new(host: String, port: u32) -> Connection {
-        let stream = Connection::create_connect(format!("{}:{}", host, port));
-
-        let stream = match stream {
-            Ok(value) => Some(value),
-            Err(_) => None,
+    pub fn new(
+        host: String,
+        port: u32,
+        stream: Option<TcpStream>,
+    ) -> Result<Connection, RedisError> {
+        let stream = if let Some(value) = stream {
+            value
+        } else {
+            Connection::create_connection(format!("{}:{}", host, port))?
         };
 
-        Connection { host, port, stream }
+        Ok(Connection { host, port, stream })
     }
 
     /// Send a raw request string to the redis server
-    pub fn send_raw_request(&self, command: String) -> Result<Response, RedisError> {
+    pub fn send_raw_request(&mut self, command: String) -> Result<Response, RedisError> {
         let request = parse_command(command);
         let response = self.write(request)?;
         let response: Response = parse_response(response)?;
@@ -41,14 +44,14 @@ impl Connection {
     }
 
     /// Append `value` to the value related to `key`. Returns number of bytes read as integer
-    pub fn append(&self, key: &str, value: &str) -> Result<Response, RedisError> {
+    pub fn append(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!("append {} '{}'", key, value);
         let response = self.send_raw_request(request)?;
         Ok(response)
     }
 
     /// Send a get request to fetch a specified `key`. Returns the value as a Response
-    pub fn get(&self, key: &str) -> Result<Response, RedisError> {
+    pub fn get(&mut self, key: &str) -> Result<Response, RedisError> {
         let request = format!("get {}", &key);
         let response = self.send_raw_request(request)?;
         Ok(response)
@@ -56,7 +59,7 @@ impl Connection {
 
     /// Send an echo request. This is great for health checking the server
     /// Returns the string sent as a simple string
-    pub fn echo(&self, string: &str) -> Result<Response, RedisError> {
+    pub fn echo(&mut self, string: &str) -> Result<Response, RedisError> {
         let request = format!("echo {}", &string);
         let response = self.send_raw_request(request)?;
         Ok(response)
@@ -64,7 +67,7 @@ impl Connection {
 
     /// Send a set request to create a new `key` with value `value`.
     /// Returns OK as a SimpleString on success
-    pub fn set(&self, key: &str, value: &str) -> Result<Response, RedisError> {
+    pub fn set(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!(
             "*3\r\n$3\r\nset\r\n${}\r\n{}\r\n${}\r\n{}\r\n",
             key.chars().count(),
@@ -81,7 +84,7 @@ impl Connection {
 
     /// Ping the server. The response data should be PONG
     /// Returns "PONG" as a SimpleString on success
-    pub fn ping(&self) -> Result<Response, RedisError> {
+    pub fn ping(&mut self) -> Result<Response, RedisError> {
         let request = String::from("PING");
         let response = self.send_raw_request(request)?;
         Ok(response)
@@ -89,7 +92,7 @@ impl Connection {
 
     /// Delete keys from the server
     /// Returns the number of keys removed
-    pub fn delete(&self, keys: Vec<&str>) -> Result<Response, RedisError> {
+    pub fn delete(&mut self, keys: Vec<&str>) -> Result<Response, RedisError> {
         let mut request = String::from("del ");
 
         for key in keys {
@@ -101,7 +104,7 @@ impl Connection {
         Ok(response)
     }
 
-    pub fn copy(&self, source: &str, destination: &str) -> Result<Response, RedisError> {
+    pub fn copy(&mut self, source: &str, destination: &str) -> Result<Response, RedisError> {
         let request = format!("copy {} {}", source, destination);
 
         let response = self.send_raw_request(request)?;
@@ -109,7 +112,7 @@ impl Connection {
         Ok(response)
     }
 
-    fn create_connect(addr: String) -> Result<TcpStream, RedisError> {
+    fn create_connection(addr: String) -> Result<TcpStream, RedisError> {
         match TcpStream::connect(addr) {
             Ok(s) => Ok(s),
             Err(_) => {
@@ -121,8 +124,8 @@ impl Connection {
     }
 
     #[doc(hidden)]
-    fn write(&self, request: String) -> Result<String, RedisError> {
-        let _ = match self.stream.as_ref().unwrap().write(request.as_bytes()) {
+    fn write(&mut self, request: String) -> Result<String, RedisError> {
+        let _ = match self.stream.write(request.as_bytes()) {
             Ok(value) => value,
             Err(_) => {
                 return Err(RedisError::SocketConnectionError(
@@ -135,7 +138,7 @@ impl Connection {
 
         // response is guaranteed to be less than 512 bytes
         let mut buffer: [u8; 512] = [0; 512];
-        let _ = match self.stream.as_ref().unwrap().read(&mut buffer) {
+        let _ = match self.stream.read(&mut buffer) {
             Ok(value) => value,
             Err(_) => {
                 return Err(RedisError::SocketConnectionError(
@@ -161,7 +164,7 @@ mod test {
     fn test_connection_new() {
         let host = String::from("127.0.0.1");
         let port = 6379;
-        let c = connection::Connection::new(host.clone(), port);
+        let c = connection::Connection::new(host.clone(), port, None).unwrap();
 
         assert_eq!(c.host, host);
         assert_eq!(c.port, port);
@@ -169,7 +172,8 @@ mod test {
 
     #[test]
     fn test_append() {
-        let client = connection::Connection::new(String::from("127.0.0.1"), 6379);
+        let mut client =
+            connection::Connection::new(String::from("127.0.0.1"), 6379, None).unwrap();
         let _ = client.set("append_value", "value");
         let response = client.append("append_value", "foo").unwrap();
 
@@ -178,7 +182,8 @@ mod test {
 
     #[test]
     fn test_send_get() {
-        let client = connection::Connection::new(String::from("127.0.0.1"), 6379);
+        let mut client =
+            connection::Connection::new(String::from("127.0.0.1"), 6379, None).unwrap();
 
         let response = client.get("FOO").unwrap();
 
@@ -191,14 +196,14 @@ mod test {
 
     #[test]
     fn test_ping() {
-        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
         let response = client.ping().unwrap();
         assert_eq!(response, Response::SimpleString(String::from("PONG")));
     }
 
     #[test]
     fn test_send_set() {
-        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
 
         let response = client.set("BAZ", "QUUX").unwrap();
 
@@ -207,7 +212,7 @@ mod test {
 
     #[test]
     fn test_delete() {
-        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
         let key = vec!["val"];
         let value = "value";
         let _ = client.set(key[0], value);
@@ -218,7 +223,7 @@ mod test {
 
     #[test]
     fn test_multi_delete() {
-        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
         let _ = client.set("bar1", "bar");
         let _ = client.set("bar2", "bar");
 
@@ -231,23 +236,21 @@ mod test {
 
     #[test]
     fn test_copy() {
-        let client = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
 
         let _ = client.set("bar1", "bar");
         let _ = client.delete(vec!["new_bar"]);
 
         let response = client.copy("bar1", "new_bar").unwrap();
-        let get_response = client.get("new_bar").unwrap();
 
         assert_eq!(response, Response::Integer(1));
-        assert_eq!(get_response, Response::BulkString("bar".to_string()));
     }
 
     #[test]
     fn test_connection_send() {
         let host = "127.0.0.1";
         let port = 6379;
-        let c = connection::Connection::new(host.to_string(), port);
+        let mut c = connection::Connection::new(host.to_string(), port, None).unwrap();
         let command = String::from("PING");
 
         let response = c.send_raw_request(command).unwrap();
@@ -258,7 +261,8 @@ mod test {
     #[test]
 
     fn test_parse_send_quoted_set() {
-        let connection = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut connection =
+            connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
         let response = connection.set("myvalue", "a custom value").unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("OK")));
@@ -266,7 +270,8 @@ mod test {
 
     #[test]
     fn test_connection_write() {
-        let connection = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut connection =
+            connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
         let command = "PING\r\n";
 
         let response = connection.write(command.to_string());
@@ -275,7 +280,8 @@ mod test {
 
     #[test]
     fn test_connection_test_multi_word_requests() {
-        let connection = connection::Connection::new("127.0.0.1".to_string(), 6379);
+        let mut connection =
+            connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
 
         let set_request = String::from("SET FOO BAR");
         let get_request = String::from("GET FOO");
