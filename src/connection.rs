@@ -29,9 +29,8 @@ where
     /// Send a raw request string to the redis server
     pub fn send_raw_request(&mut self, command: &str) -> Result<Response, RedisError> {
         let request = parse_command(command);
-        println!("request {}", request);
-        let response = self.write(request)?;
-        let response: Response = parse_response(response)?;
+        let response = self.write(&request)?;
+        let response: Response = parse_response(&response)?;
 
         Ok(response)
     }
@@ -39,8 +38,10 @@ where
     /// Append `value` to the value related to `key`. Returns number of bytes read as integer
     pub fn append(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!("append {} '{}'", key, value);
-        let response = self.send_raw_request(&request)?;
-        Ok(response)
+        let command = parse_command(&request);
+        let response = self.write(&command)?;
+        let parsed_response = parse_response(&response)?;
+        Ok(parsed_response)
     }
 
     /// Send a get request to fetch a specified `key`. Returns the value as a Response
@@ -69,8 +70,8 @@ where
             value
         );
 
-        let response_data = self.write(request)?;
-        let response = parse_response(response_data)?;
+        let response_data = self.write(&request)?;
+        let response = parse_response(&response_data)?;
         Ok(response)
     }
 
@@ -105,7 +106,7 @@ where
     }
 
     #[doc(hidden)]
-    fn write(&mut self, request: String) -> Result<String, RedisError> {
+    fn write(&mut self, request: &str) -> Result<String, RedisError> {
         let _ = match self.stream.write(request.as_bytes()) {
             Ok(value) => value,
             Err(_) => {
@@ -117,7 +118,6 @@ where
 
         let mut response = String::new();
 
-        // response is guaranteed to be less than 512 bytes
         let mut buffer: [u8; 512] = [0; 512];
         let _ = match self.stream.read(&mut buffer) {
             Ok(value) => value,
@@ -293,7 +293,7 @@ mod test {
         let mut connection = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let command = "PING\r\n";
 
-        let response = connection.write(command.to_string());
+        let response = connection.write(command);
         assert!(response.is_ok());
     }
 

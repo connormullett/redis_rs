@@ -21,7 +21,7 @@ pub fn parse_command(command: &str) -> String {
 }
 
 #[doc(hidden)]
-pub fn parse_response(response: String) -> Result<Response, RedisError> {
+pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     let mut bytes = response.bytes();
 
     let first_byte = match bytes.next() {
@@ -175,7 +175,7 @@ mod test {
     fn test_parse_response() {
         let data = String::from("+OK\r\n");
 
-        let response = parse_response(data).unwrap();
+        let response = parse_response(&data).unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("OK")));
     }
@@ -184,7 +184,7 @@ mod test {
     fn test_error_response() {
         let data = String::from("-ERROR\r\n");
 
-        let response = parse_response(data).unwrap();
+        let response = parse_response(&data).unwrap();
         assert_eq!(response, Response::Error(String::from("ERROR")));
     }
 }
