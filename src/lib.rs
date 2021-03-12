@@ -7,21 +7,28 @@
 //! Examples
 //! Create a connection and send requests
 //!```
-//!extern crate redis_rs;
-//!use redis_rs::connection::Connection;
-//!use redis_rs::response::Response;
+//! extern crate redis_rs;
+//! use std::net::TcpStream;
+//! use redis_rs::connection::Connection;
+//! use redis_rs::response::Response;
 //!
-//!let host = String::from("127.0.0.1");
-//!let mut client = Connection::new(host, 6379, None).unwrap();
-//!// send a request
-//!let _ = client.send_raw_request("SET FOO BAR".to_string());
-//!// or use a supported command
-//!let response = client.get("FOO").unwrap();
+//! let host = String::from("127.0.0.1");
+//! let port = 6379;
+//! let addr = format!("{}:{}", host, port);
+//! let stream = TcpStream::connect(addr).unwrap();
 //!
-//!// match against the response to extract the value
-//!if let Response::BulkString(value) = response {
-//!  println!("{}", value);
-//!}
+//! // stream can be anything that implements read and write
+//! let mut client = Connection::new(host, port, stream);
+//!
+//! // send a request
+//! let _ = client.send_raw_request("SET FOO BAR".to_string());
+//! // or use a supported command
+//! let response = client.get("FOO").unwrap();
+//!
+//! // match against the response to extract the value
+//! if let Response::BulkString(value) = response {
+//!   println!("{}", value);
+//! }
 //!```
 
 pub mod connection;
