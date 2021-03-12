@@ -160,6 +160,18 @@ mod test {
     use crate::connection;
     use crate::response::Response;
 
+    use super::Connection;
+
+    #[test]
+    fn test_passing_tcp_stream_to_connection() {
+        let stream = Connection::create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = Connection::new("127.0.0.1".to_string(), 6379, Some(stream)).unwrap();
+
+        let response = client.set("new", "bar").unwrap();
+
+        assert_eq!(response, Response::SimpleString(String::from("OK")));
+    }
+
     #[test]
     fn test_connection_new() {
         let host = String::from("127.0.0.1");
