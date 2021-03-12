@@ -12,7 +12,8 @@ pub struct Connection<T> {
     pub host: String,
     /// The server port
     pub port: u32,
-    /// The TCP stream to communicate with the server
+    /// A stream like object that implements Read + Write.
+    /// This must be a Tcp connection or Unix like socket
     pub stream: T,
 }
 
