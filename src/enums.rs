@@ -5,7 +5,7 @@ use std::fmt;
 pub enum RedisError {
     /// Error variant used when a request/response fails to parse
     ParseError(String),
-    /// Error variant used when an error occurs when reading/writing from/to a socket
+    /// Error variant used when an error occurs when reading/writing from/to the Connection stream
     SocketConnectionError(String),
 }
 

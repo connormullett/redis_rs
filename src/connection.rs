@@ -171,6 +171,23 @@ mod test {
     }
 
     #[test]
+    fn test_reuse_connection() {
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = Connection::new("127.0.0.1".to_string(), 6379, stream);
+
+        let _ = client.get("FOO").unwrap();
+        let _ = client.get("FOO").unwrap();
+        let _ = client.get("FOO").unwrap();
+    }
+
+    #[test]
+    fn test_bad_connection_info() {
+        let stream = create_connection("127.0.0.1:1111".to_string());
+
+        assert!(stream.is_err());
+    }
+
+    #[test]
     fn test_connection_new() {
         let host = String::from("127.0.0.1");
         let port = 6379;
@@ -199,10 +216,6 @@ mod test {
         let mut client = connection::Connection::new(String::from("127.0.0.1"), 6379, stream);
 
         let response = client.get("FOO").unwrap();
-
-        if let Response::SimpleString(value) = &response {
-            println!("value {}", value);
-        }
 
         assert_eq!(response, Response::BulkString(String::from("BAR")));
     }
