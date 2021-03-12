@@ -1,37 +1,28 @@
 use std::io::{self, Read};
-use std::net;
 
 use io::Write;
-use net::TcpStream;
 
 use crate::enums::RedisError;
 use crate::parse::{parse_command, parse_response};
 use crate::response::Response;
 
 /// Holds connection information for the redis server
-pub struct Connection {
+pub struct Connection<T> {
     /// The server host
     pub host: String,
     /// The server port
     pub port: u32,
     /// The TCP stream to communicate with the server
-    pub stream: TcpStream,
+    pub stream: T,
 }
 
-impl Connection {
+impl<T> Connection<T>
+where
+    T: Read + Write,
+{
     /// Create a new Connection
-    pub fn new(
-        host: String,
-        port: u32,
-        stream: Option<TcpStream>,
-    ) -> Result<Connection, RedisError> {
-        let stream = if let Some(value) = stream {
-            value
-        } else {
-            Connection::create_connection(format!("{}:{}", host, port))?
-        };
-
-        Ok(Connection { host, port, stream })
+    pub fn new(host: String, port: u32, stream: T) -> Connection<T> {
+        Connection { host, port, stream }
     }
 
     /// Send a raw request string to the redis server
@@ -112,17 +103,6 @@ impl Connection {
         Ok(response)
     }
 
-    fn create_connection(addr: String) -> Result<TcpStream, RedisError> {
-        match TcpStream::connect(addr) {
-            Ok(s) => Ok(s),
-            Err(_) => {
-                return Err(RedisError::SocketConnectionError(
-                    "Can not connect to socket".to_string(),
-                ));
-            }
-        }
-    }
-
     #[doc(hidden)]
     fn write(&mut self, request: String) -> Result<String, RedisError> {
         let _ = match self.stream.write(request.as_bytes()) {
@@ -157,15 +137,28 @@ impl Connection {
 
 #[cfg(test)]
 mod test {
-    use crate::connection;
+    use std::net::TcpStream;
+
     use crate::response::Response;
+    use crate::{connection, enums::RedisError};
 
     use super::Connection;
 
+    fn create_connection(addr: String) -> Result<TcpStream, RedisError> {
+        match TcpStream::connect(addr) {
+            Ok(s) => Ok(s),
+            Err(_) => {
+                return Err(RedisError::SocketConnectionError(
+                    "Can not connect to server".to_string(),
+                ));
+            }
+        }
+    }
+
     #[test]
     fn test_passing_tcp_stream_to_connection() {
-        let stream = Connection::create_connection("127.0.0.1:6379".to_string()).unwrap();
-        let mut client = Connection::new("127.0.0.1".to_string(), 6379, Some(stream)).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = Connection::new("127.0.0.1".to_string(), 6379, stream);
 
         let response = client.set("new", "bar").unwrap();
 
@@ -176,7 +169,8 @@ mod test {
     fn test_connection_new() {
         let host = String::from("127.0.0.1");
         let port = 6379;
-        let c = connection::Connection::new(host.clone(), port, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let c = connection::Connection::new(host.clone(), port, stream);
 
         assert_eq!(c.host, host);
         assert_eq!(c.port, port);
@@ -184,8 +178,9 @@ mod test {
 
     #[test]
     fn test_append() {
-        let mut client =
-            connection::Connection::new(String::from("127.0.0.1"), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+
+        let mut client = connection::Connection::new(String::from("127.0.0.1"), 6379, stream);
         let _ = client.set("append_value", "value");
         let response = client.append("append_value", "foo").unwrap();
 
@@ -194,8 +189,9 @@ mod test {
 
     #[test]
     fn test_send_get() {
-        let mut client =
-            connection::Connection::new(String::from("127.0.0.1"), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+
+        let mut client = connection::Connection::new(String::from("127.0.0.1"), 6379, stream);
 
         let response = client.get("FOO").unwrap();
 
@@ -208,15 +204,16 @@ mod test {
 
     #[test]
     fn test_ping() {
-        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let response = client.ping().unwrap();
         assert_eq!(response, Response::SimpleString(String::from("PONG")));
     }
 
     #[test]
     fn test_send_set() {
-        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
-
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let response = client.set("BAZ", "QUUX").unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("OK")));
@@ -224,7 +221,8 @@ mod test {
 
     #[test]
     fn test_delete() {
-        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let key = vec!["val"];
         let value = "value";
         let _ = client.set(key[0], value);
@@ -235,7 +233,8 @@ mod test {
 
     #[test]
     fn test_multi_delete() {
-        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let _ = client.set("bar1", "bar");
         let _ = client.set("bar2", "bar");
 
@@ -248,7 +247,8 @@ mod test {
 
     #[test]
     fn test_copy() {
-        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
 
         let _ = client.set("bar1", "bar");
         let _ = client.delete(vec!["new_bar"]);
@@ -262,7 +262,10 @@ mod test {
     fn test_connection_send() {
         let host = "127.0.0.1";
         let port = 6379;
-        let mut c = connection::Connection::new(host.to_string(), port, None).unwrap();
+
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut c = connection::Connection::new(host.to_string(), port, stream);
+
         let command = String::from("PING");
 
         let response = c.send_raw_request(command).unwrap();
@@ -273,8 +276,8 @@ mod test {
     #[test]
 
     fn test_parse_send_quoted_set() {
-        let mut connection =
-            connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut connection = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let response = connection.set("myvalue", "a custom value").unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("OK")));
@@ -282,8 +285,8 @@ mod test {
 
     #[test]
     fn test_connection_write() {
-        let mut connection =
-            connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut connection = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
         let command = "PING\r\n";
 
         let response = connection.write(command.to_string());
@@ -292,8 +295,8 @@ mod test {
 
     #[test]
     fn test_connection_test_multi_word_requests() {
-        let mut connection =
-            connection::Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut connection = connection::Connection::new("127.0.0.1".to_string(), 6379, stream);
 
         let set_request = String::from("SET FOO BAR");
         let get_request = String::from("GET FOO");

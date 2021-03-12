@@ -130,9 +130,22 @@ fn read_to_carriage_return(bytes: &mut Bytes) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::connection::Connection;
+    use std::net::TcpStream;
+
     use crate::response::Response;
+    use crate::{connection::Connection, enums::RedisError};
     use parse::parse_response;
+
+    fn create_connection(addr: String) -> Result<TcpStream, RedisError> {
+        match TcpStream::connect(addr) {
+            Ok(s) => Ok(s),
+            Err(_) => {
+                return Err(RedisError::SocketConnectionError(
+                    "Can not connect to server".to_string(),
+                ));
+            }
+        }
+    }
 
     use crate::parse;
     #[test]
@@ -146,7 +159,8 @@ mod test {
 
     #[test]
     fn test_parse_quotes_handled_properly() {
-        let mut client = Connection::new("127.0.0.1".to_string(), 6379, None).unwrap();
+        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
+        let mut client = Connection::new("127.0.0.1".to_string(), 6379, stream);
 
         let raw_request = String::from("set myvalue 'a custom value'");
         let _ = client.send_raw_request(raw_request);
