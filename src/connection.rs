@@ -14,20 +14,21 @@ pub struct Connection {
     pub host: String,
     /// The server port
     pub port: u32,
+    /// The TCP stream to communicate with the server
+    pub stream: Option<TcpStream>,
 }
 
 impl Connection {
     /// Create a new Connection
     pub fn new(host: String, port: u32) -> Connection {
-        Connection { host, port }
-    }
+        let stream = Connection::create_connect(format!("{}:{}", host, port));
 
-    /// Create a default connection on localhost:6379. Good for testing local connections
-    pub fn default() -> Connection {
-        Connection {
-            host: String::from("127.0.0.1"),
-            port: 6379,
-        }
+        let stream = match stream {
+            Ok(value) => Some(value),
+            Err(_) => None,
+        };
+
+        Connection { host, port, stream }
     }
 
     /// Send a raw request string to the redis server
@@ -108,19 +109,20 @@ impl Connection {
         Ok(response)
     }
 
-    #[doc(hidden)]
-    fn write(&self, request: String) -> Result<String, RedisError> {
-        let addr = format!("{}:{}", self.host, self.port);
-        let mut stream = match TcpStream::connect(addr) {
-            Ok(s) => s,
+    fn create_connect(addr: String) -> Result<TcpStream, RedisError> {
+        match TcpStream::connect(addr) {
+            Ok(s) => Ok(s),
             Err(_) => {
                 return Err(RedisError::SocketConnectionError(
                     "Can not connect to socket".to_string(),
                 ));
             }
-        };
+        }
+    }
 
-        let _ = match stream.write(request.as_bytes()) {
+    #[doc(hidden)]
+    fn write(&self, request: String) -> Result<String, RedisError> {
+        let _ = match self.stream.as_ref().unwrap().write(request.as_bytes()) {
             Ok(value) => value,
             Err(_) => {
                 return Err(RedisError::SocketConnectionError(
@@ -133,7 +135,7 @@ impl Connection {
 
         // response is guaranteed to be less than 512 bytes
         let mut buffer: [u8; 512] = [0; 512];
-        let _ = match stream.read(&mut buffer) {
+        let _ = match self.stream.as_ref().unwrap().read(&mut buffer) {
             Ok(value) => value,
             Err(_) => {
                 return Err(RedisError::SocketConnectionError(
