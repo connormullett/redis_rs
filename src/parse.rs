@@ -158,7 +158,7 @@ mod test {
     #[test]
     fn test_parse_quotes_handled_properly() {
         let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
-        let mut client = Connection::new("127.0.0.1".to_string(), 6379, stream);
+        let mut client = Connection::new("127.0.0.1", 6379, stream);
 
         let _ = client.send_raw_request("set myvalue 'a custom value'");
 
