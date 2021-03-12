@@ -29,7 +29,8 @@ where
     /// Send a raw request string to the redis server
     pub fn send_raw_request(&mut self, command: &str) -> Result<Response, RedisError> {
         let request = parse_command(command);
-        let response = self.write(&request)?;
+        let _ = self.write(&request)?;
+        let response = self.read()?;
         let response: Response = parse_response(&response)?;
 
         Ok(response)
@@ -39,7 +40,8 @@ where
     pub fn append(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!("append {} '{}'", key, value);
         let command = parse_command(&request);
-        let response = self.write(&command)?;
+        let _ = self.write(&command)?;
+        let response = self.read()?;
         let parsed_response = parse_response(&response)?;
         Ok(parsed_response)
     }
@@ -70,8 +72,9 @@ where
             value
         );
 
-        let response_data = self.write(&request)?;
-        let response = parse_response(&response_data)?;
+        let _ = self.write(&request)?;
+        let response = self.read()?;
+        let response = parse_response(&response)?;
         Ok(response)
     }
 
@@ -105,17 +108,18 @@ where
         Ok(response)
     }
 
-    #[doc(hidden)]
-    fn write(&mut self, request: &str) -> Result<String, RedisError> {
+    fn write(&mut self, request: &str) -> Result<(), RedisError> {
         let _ = match self.stream.write(request.as_bytes()) {
             Ok(value) => value,
-            Err(_) => {
-                return Err(RedisError::SocketConnectionError(
-                    "Error writing to stream".to_string(),
-                ));
+            Err(e) => {
+                return Err(RedisError::SocketConnectionError(e.to_string()));
             }
         };
 
+        Ok(())
+    }
+
+    fn read(&mut self) -> Result<String, RedisError> {
         let mut response = String::new();
 
         let mut buffer: [u8; 512] = [0; 512];
