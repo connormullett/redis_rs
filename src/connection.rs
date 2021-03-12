@@ -26,8 +26,9 @@ where
     }
 
     /// Send a raw request string to the redis server
-    pub fn send_raw_request(&mut self, command: String) -> Result<Response, RedisError> {
+    pub fn send_raw_request(&mut self, command: &str) -> Result<Response, RedisError> {
         let request = parse_command(command);
+        println!("request {}", request);
         let response = self.write(request)?;
         let response: Response = parse_response(response)?;
 
@@ -37,14 +38,14 @@ where
     /// Append `value` to the value related to `key`. Returns number of bytes read as integer
     pub fn append(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!("append {} '{}'", key, value);
-        let response = self.send_raw_request(request)?;
+        let response = self.send_raw_request(&request)?;
         Ok(response)
     }
 
     /// Send a get request to fetch a specified `key`. Returns the value as a Response
     pub fn get(&mut self, key: &str) -> Result<Response, RedisError> {
         let request = format!("get {}", &key);
-        let response = self.send_raw_request(request)?;
+        let response = self.send_raw_request(&request)?;
         Ok(response)
     }
 
@@ -52,7 +53,7 @@ where
     /// Returns the string sent as a simple string
     pub fn echo(&mut self, string: &str) -> Result<Response, RedisError> {
         let request = format!("echo {}", &string);
-        let response = self.send_raw_request(request)?;
+        let response = self.send_raw_request(&request)?;
         Ok(response)
     }
 
@@ -69,14 +70,13 @@ where
 
         let response_data = self.write(request)?;
         let response = parse_response(response_data)?;
-
         Ok(response)
     }
 
     /// Ping the server. The response data should be PONG
     /// Returns "PONG" as a SimpleString on success
     pub fn ping(&mut self) -> Result<Response, RedisError> {
-        let request = String::from("PING");
+        let request = "PING";
         let response = self.send_raw_request(request)?;
         Ok(response)
     }
@@ -90,7 +90,7 @@ where
             request.push_str(&format!("{} ", key));
         }
 
-        let response = self.send_raw_request(request)?;
+        let response = self.send_raw_request(&request)?;
 
         Ok(response)
     }
@@ -98,7 +98,7 @@ where
     pub fn copy(&mut self, source: &str, destination: &str) -> Result<Response, RedisError> {
         let request = format!("copy {} {}", source, destination);
 
-        let response = self.send_raw_request(request)?;
+        let response = self.send_raw_request(&request)?;
 
         Ok(response)
     }
@@ -271,9 +271,7 @@ mod test {
         let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
         let mut c = connection::Connection::new(host.to_string(), port, stream);
 
-        let command = String::from("PING");
-
-        let response = c.send_raw_request(command).unwrap();
+        let response = c.send_raw_request("PING").unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("PONG")));
     }
@@ -306,10 +304,10 @@ mod test {
         let set_request = String::from("SET FOO BAR");
         let get_request = String::from("GET FOO");
 
-        let set_response = connection.send_raw_request(set_request);
+        let set_response = connection.send_raw_request(&set_request);
         assert!(set_response.is_ok());
 
-        let get_response = connection.send_raw_request(get_request).unwrap();
+        let get_response = connection.send_raw_request(&get_request).unwrap();
         assert_eq!(get_response, Response::BulkString(String::from("BAR")));
     }
 }

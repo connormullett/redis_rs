@@ -21,7 +21,7 @@
 //! let mut client = Connection::new(host, port, stream);
 //!
 //! // send a request
-//! let _ = client.send_raw_request("SET FOO BAR".to_string());
+//! let _ = client.send_raw_request("SET FOO BAR");
 //! // or use a supported command
 //! let response = client.get("FOO").unwrap();
 //!

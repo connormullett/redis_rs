@@ -6,7 +6,7 @@ pub use crate::response::{
 use std::str::Bytes;
 
 #[doc(hidden)]
-pub fn parse_command(command: String) -> String {
+pub fn parse_command(command: &str) -> String {
     let mut output = String::new();
     let tokens: Vec<&str> = command.split(' ').collect();
 
@@ -150,9 +150,7 @@ mod test {
     use crate::parse;
     #[test]
     fn test_parse_command() {
-        let command = String::from("GET FOO");
-
-        let parsed_command = parse::parse_command(command);
+        let parsed_command = parse::parse_command("GET FOO");
 
         assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
     }
@@ -162,8 +160,7 @@ mod test {
         let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
         let mut client = Connection::new("127.0.0.1".to_string(), 6379, stream);
 
-        let raw_request = String::from("set myvalue 'a custom value'");
-        let _ = client.send_raw_request(raw_request);
+        let _ = client.send_raw_request("set myvalue 'a custom value'");
 
         let key = "myvalue";
         let response = client.get(key).unwrap();
