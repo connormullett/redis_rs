@@ -39,7 +39,7 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
         ':' => parse_integer(&mut bytes),
         '$' => parse_bulk_string(&mut bytes),
         '*' => parse_array(&mut bytes),
-        _ => Ok(Error(format!(
+        _ => Err(RedisError::ParseError(format!(
             "unexpected byte {}, in response",
             first_byte
         ))),
