@@ -43,9 +43,9 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
             "unexpected byte {}, in response",
             first_byte
         ))),
-    };
+    }?;
 
-    Ok(response?)
+    Ok(response)
 }
 
 #[doc(hidden)]
@@ -115,7 +115,7 @@ fn parse_simple_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
 fn read_to_carriage_return(bytes: &mut Bytes) -> String {
     let mut string = String::new();
 
-    while let Some(c) = bytes.next() {
+    for c in bytes {
         let c = c as char;
 
         if let '\r' = c {
