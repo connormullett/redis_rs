@@ -7,6 +7,7 @@ use std::str::Bytes;
 
 #[doc(hidden)]
 pub fn parse_command(command: &str) -> String {
+    // TODO: set foo 'new bar' will break from send_raw_request
     let mut output = String::new();
     let tokens: Vec<&str> = command.split(' ').collect();
 
