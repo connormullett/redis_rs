@@ -307,7 +307,7 @@ mod test {
     }
 
     #[test]
-    fn test_connection_send() {
+    fn test_send_raw_request() {
         let host = "127.0.0.1";
         let port = 6379;
 
@@ -317,6 +317,11 @@ mod test {
         let response = c.send_raw_request("PING").unwrap();
 
         assert_eq!(response, Response::SimpleString(String::from("PONG")));
+        assert_eq!(
+            c.send_raw_request("set mynewvalue 'a great new value'")
+                .unwrap(),
+            Response::SimpleString(String::from("OK"))
+        );
     }
 
     #[test]
