@@ -170,7 +170,7 @@ mod test {
     use crate::{connection::Connection, enums::RedisError};
     use parse::parse_response;
 
-    fn create_connection(addr: String) -> Result<TcpStream, RedisError> {
+    fn create_connection(addr: &str) -> Result<TcpStream, RedisError> {
         match TcpStream::connect(addr) {
             Ok(s) => Ok(s),
             Err(_) => {
@@ -180,6 +180,10 @@ mod test {
             }
         }
     }
+
+    const HOST: &'static str = "127.0.0.1";
+    const PORT: u16 = 6379;
+    const ADDR: &'static str = "127.0.0.1:6379";
 
     use crate::parse;
     #[test]
@@ -191,8 +195,8 @@ mod test {
 
     #[test]
     fn test_parse_quotes_handled_properly() {
-        let stream = create_connection("127.0.0.1:6379".to_string()).unwrap();
-        let mut client = Connection::new("127.0.0.1", 6379, stream);
+        let stream = create_connection(ADDR).unwrap();
+        let mut client = Connection::new(HOST, PORT, stream);
 
         let _ = client.send_raw_request("set myvalue 'a custom value'");
 

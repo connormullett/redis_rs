@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq)]
 /// The type the response data will be according to RESP specification
+/// https://redis.io/topics/protocol
 pub enum Response {
     /// Equivalent to String
     SimpleString(String),
