@@ -33,7 +33,7 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
         tokens.push(cur_token);
     }
 
-    if quoted == true && command.contains('\'') {
+    if quoted && command.contains('\'') {
         return Err(RedisError::ParseError(String::from(
             "Quoted string is not closed (mismatch quotes)",
         )));
