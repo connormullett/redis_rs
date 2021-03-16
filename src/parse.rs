@@ -5,11 +5,41 @@ pub use crate::response::{
 };
 use std::str::Bytes;
 
-#[doc(hidden)]
-pub fn parse_command(command: &str) -> String {
-    // TODO: set foo 'new bar' will break from send_raw_request
+pub fn parse_command(command: &str) -> Result<String, RedisError> {
+    let mut tokens = Vec::<String>::new();
+    let mut cur_token = String::new();
+    let mut quoted = false;
+
+    for item in command.as_bytes() {
+        let item = *item as char;
+        match item {
+            ' ' if !quoted => {
+                tokens.push(cur_token.clone());
+                cur_token.clear()
+            }
+            '\'' if !quoted => {
+                quoted = true;
+            }
+            '\'' if quoted => {
+                quoted = false;
+                tokens.push(cur_token.clone());
+                cur_token.clear();
+            }
+            _ => cur_token.push(item),
+        }
+    }
+
+    if !cur_token.is_empty() {
+        tokens.push(cur_token);
+    }
+
+    if quoted == true && command.contains('\'') {
+        return Err(RedisError::ParseError(String::from(
+            "Quoted string is not closed (mismatch quotes)",
+        )));
+    }
+
     let mut output = String::new();
-    let tokens: Vec<&str> = command.split(' ').collect();
 
     output.push_str(&format!("*{}\r\n", tokens.len()));
 
@@ -18,7 +48,7 @@ pub fn parse_command(command: &str) -> String {
         output.push_str(&format!("${}\r\n{}\r\n", length, token));
     }
 
-    output
+    Ok(output)
 }
 
 #[doc(hidden)]
@@ -153,9 +183,10 @@ mod test {
     const ADDR: &'static str = "127.0.0.1:6379";
 
     use crate::parse;
+
     #[test]
     fn test_parse_command() {
-        let parsed_command = parse::parse_command("GET FOO");
+        let parsed_command = parse::parse_command("GET FOO").unwrap();
 
         assert_eq!("*2\r\n$3\r\nGET\r\n$3\r\nFOO\r\n", parsed_command);
     }

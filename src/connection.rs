@@ -53,7 +53,7 @@ where
 
     /// Send a raw request string to the redis server
     pub fn send_raw_request(&mut self, command: &str) -> Result<Response, RedisError> {
-        let request = parse_command(command);
+        let request = parse_command(command)?;
         let _ = self.write(&request)?;
         let response = self.read()?;
         let response: Response = parse_response(&response)?;
@@ -64,7 +64,7 @@ where
     /// Append `value` to the value related to `key`. Returns number of bytes read as integer
     pub fn append(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
         let request = format!("append {} '{}'", key, value);
-        let command = parse_command(&request);
+        let command = parse_command(&request)?;
         let _ = self.write(&command)?;
         let response = self.read()?;
         let parsed_response = parse_response(&response)?;
@@ -228,7 +228,7 @@ mod test {
         let _ = client.set("append_value", "value");
         let response = client.append("append_value", "foo").unwrap();
 
-        assert_eq!(response, Response::Integer(10));
+        assert_eq!(response, Response::Integer(8));
     }
 
     #[test]
