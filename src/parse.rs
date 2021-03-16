@@ -21,39 +21,6 @@ pub fn parse_command(command: &str) -> String {
     output
 }
 
-#[allow(dead_code)]
-pub fn command(command: &str) -> String {
-    let mut cur_token = String::new();
-    let mut quote_flag = false;
-
-    let mut tokens = Vec::<String>::new();
-
-    for char in command.as_bytes() {
-        let char = *char as char;
-        if char == '\'' && !quote_flag {
-            quote_flag = true;
-            continue;
-        }
-
-        if char == '\'' && quote_flag {
-            tokens.push(cur_token.clone());
-            cur_token.clear();
-            quote_flag = false;
-            continue;
-        }
-
-        if char == ' ' && !quote_flag {
-            tokens.push(cur_token.clone());
-            cur_token.clear();
-            continue;
-        }
-
-        cur_token.push(char);
-    }
-
-    String::new()
-}
-
 #[doc(hidden)]
 pub fn parse_response(response: &str) -> Result<Response, RedisError> {
     let mut bytes = response.bytes();
