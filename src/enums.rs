@@ -1,10 +1,15 @@
 use std::{error, fmt};
 
+/// Alias for `Result<T, RedisError>`.
+/// This is the main return type for most
+/// methods within the client.
 pub type RedisResult<T> = Result<T, RedisError>;
 
+/// A dynamic error type aliased to RedisError
 pub type RedisError = Box<dyn error::Error>;
 
 #[derive(Debug, Clone)]
+/// An error that occurs while parsing requests/responses.
 pub struct RedisParseError {
     pub contents: String,
 }
