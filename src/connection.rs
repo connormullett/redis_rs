@@ -5,9 +5,8 @@ use std::{
 
 use io::Write;
 
-use crate::enums::RedisError;
 use crate::parse::{parse_command, parse_response};
-use crate::response::Response;
+use crate::{enums::RedisResult, response::RedisResponse};
 
 /// Holds connection information for the redis server
 pub struct Connection<T> {
@@ -33,17 +32,9 @@ where
         }
     }
 
-    pub fn new_tcp(host: &str, port: u16) -> Result<Connection<TcpStream>, RedisError> {
-        let addr = format!("{};{}", host, port);
-        let stream = match TcpStream::connect(addr) {
-            Ok(s) => s,
-            Err(_) => {
-                return Err(RedisError::SocketConnectionError(
-                    "Can not connect to server".to_string(),
-                ));
-            }
-        };
-
+    pub fn new_tcp(host: &str, port: u16) -> RedisResult<Connection<TcpStream>> {
+        let addr = format!("{}:{}", host, port);
+        let stream = TcpStream::connect(addr)?;
         Ok(Connection {
             host: host.to_string(),
             port,
@@ -52,17 +43,17 @@ where
     }
 
     /// Send a raw request string to the redis server
-    pub fn send_raw_request(&mut self, command: &str) -> Result<Response, RedisError> {
+    pub fn send_raw_request(&mut self, command: &str) -> RedisResult<RedisResponse> {
         let request = parse_command(command)?;
         let _ = self.write(&request)?;
         let response = self.read()?;
-        let response: Response = parse_response(&response)?;
+        let response = parse_response(&response)?;
 
         Ok(response)
     }
 
     /// Append `value` to the value related to `key`. Returns number of bytes read as integer
-    pub fn append(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
+    pub fn append(&mut self, key: &str, value: &str) -> RedisResult<RedisResponse> {
         let request = format!("append {} '{}'", key, value);
         let command = parse_command(&request)?;
         let _ = self.write(&command)?;
@@ -72,7 +63,7 @@ where
     }
 
     /// Send a get request to fetch a specified `key`. Returns the value as a Response
-    pub fn get(&mut self, key: &str) -> Result<Response, RedisError> {
+    pub fn get(&mut self, key: &str) -> RedisResult<RedisResponse> {
         let request = format!("get {}", &key);
         let response = self.send_raw_request(&request)?;
         Ok(response)
@@ -80,7 +71,7 @@ where
 
     /// Send an echo request. This is great for health checking the server
     /// Returns the string sent as a simple string
-    pub fn echo(&mut self, string: &str) -> Result<Response, RedisError> {
+    pub fn echo(&mut self, string: &str) -> RedisResult<RedisResponse> {
         let request = format!("echo {}", &string);
         let response = self.send_raw_request(&request)?;
         Ok(response)
@@ -88,7 +79,7 @@ where
 
     /// Send a set request to create a new `key` with value `value`.
     /// Returns OK as a SimpleString on success
-    pub fn set(&mut self, key: &str, value: &str) -> Result<Response, RedisError> {
+    pub fn set(&mut self, key: &str, value: &str) -> RedisResult<RedisResponse> {
         let request = format!(
             "*3\r\n$3\r\nset\r\n${}\r\n{}\r\n${}\r\n{}\r\n",
             key.chars().count(),
@@ -105,7 +96,7 @@ where
 
     /// Ping the server. The response data should be PONG
     /// Returns "PONG" as a SimpleString on success
-    pub fn ping(&mut self) -> Result<Response, RedisError> {
+    pub fn ping(&mut self) -> RedisResult<RedisResponse> {
         let request = "PING";
         let response = self.send_raw_request(request)?;
         Ok(response)
@@ -113,7 +104,7 @@ where
 
     /// Delete keys from the server
     /// Returns the number of keys removed
-    pub fn delete(&mut self, keys: Vec<&str>) -> Result<Response, RedisError> {
+    pub fn delete(&mut self, keys: Vec<&str>) -> RedisResult<RedisResponse> {
         let mut request = String::from("del ");
 
         for key in keys {
@@ -125,7 +116,7 @@ where
         Ok(response)
     }
 
-    pub fn copy(&mut self, source: &str, destination: &str) -> Result<Response, RedisError> {
+    pub fn copy(&mut self, source: &str, destination: &str) -> RedisResult<RedisResponse> {
         let request = format!("copy {} {}", source, destination);
 
         let response = self.send_raw_request(&request)?;
@@ -133,29 +124,16 @@ where
         Ok(response)
     }
 
-    fn write(&mut self, request: &str) -> Result<(), RedisError> {
-        let _ = match self.stream.write(request.as_bytes()) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(RedisError::SocketConnectionError(e.to_string()));
-            }
-        };
-
+    fn write(&mut self, request: &str) -> RedisResult<()> {
+        let _ = self.stream.write(request.as_bytes())?;
         Ok(())
     }
 
-    fn read(&mut self) -> Result<String, RedisError> {
+    fn read(&mut self) -> RedisResult<String> {
         let mut response = String::new();
 
         let mut buffer: [u8; 512] = [0; 512];
-        let _ = match self.stream.read(&mut buffer) {
-            Ok(value) => value,
-            Err(_) => {
-                return Err(RedisError::SocketConnectionError(
-                    "Error reading from stream".to_string(),
-                ))
-            }
-        };
+        let _ = self.stream.read(&mut buffer)?;
 
         for char in buffer.iter() {
             response.push(*char as char);
@@ -169,20 +147,13 @@ where
 mod test {
     use std::net::TcpStream;
 
-    use crate::response::Response;
-    use crate::{connection, enums::RedisError};
+    use crate::connection;
+    use crate::{enums::RedisResult, response::RedisResponse};
 
     use super::Connection;
 
-    fn create_connection(addr: &str) -> Result<TcpStream, RedisError> {
-        match TcpStream::connect(addr) {
-            Ok(s) => Ok(s),
-            Err(_) => {
-                return Err(RedisError::SocketConnectionError(
-                    "Can not connect to server".to_string(),
-                ));
-            }
-        }
+    fn create_connection(addr: &str) -> RedisResult<TcpStream> {
+        Ok(TcpStream::connect(addr)?)
     }
 
     const HOST: &'static str = "127.0.0.1";
@@ -196,7 +167,7 @@ mod test {
 
         let response = client.set("new", "bar").unwrap();
 
-        assert_eq!(response, Response::SimpleString(String::from("OK")));
+        assert_eq!(response, RedisResponse::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -228,7 +199,7 @@ mod test {
         let _ = client.set("append_value", "value");
         let response = client.append("append_value", "foo").unwrap();
 
-        assert_eq!(response, Response::Integer(8));
+        assert_eq!(response, RedisResponse::Integer(8));
     }
 
     #[test]
@@ -239,7 +210,7 @@ mod test {
 
         let response = client.get("FOO").unwrap();
 
-        assert_eq!(response, Response::BulkString(String::from("BAR")));
+        assert_eq!(response, RedisResponse::BulkString(String::from("BAR")));
     }
 
     #[test]
@@ -247,7 +218,7 @@ mod test {
         let stream = create_connection(ADDR).unwrap();
         let mut client = connection::Connection::new(HOST, PORT, stream);
         let response = client.ping().unwrap();
-        assert_eq!(response, Response::SimpleString(String::from("PONG")));
+        assert_eq!(response, RedisResponse::SimpleString(String::from("PONG")));
     }
 
     #[test]
@@ -256,7 +227,7 @@ mod test {
         let mut client = connection::Connection::new(HOST, PORT, stream);
         let response = client.set("BAZ", "QUUX").unwrap();
 
-        assert_eq!(response, Response::SimpleString(String::from("OK")));
+        assert_eq!(response, RedisResponse::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -268,7 +239,7 @@ mod test {
         let _ = client.set(key[0], value);
         let response = client.delete(key).unwrap();
 
-        assert_eq!(response, Response::Integer(1));
+        assert_eq!(response, RedisResponse::Integer(1));
     }
 
     #[test]
@@ -282,7 +253,7 @@ mod test {
 
         let response = client.delete(keys).unwrap();
 
-        assert_eq!(response, Response::Integer(2));
+        assert_eq!(response, RedisResponse::Integer(2));
     }
 
     #[test]
@@ -296,7 +267,7 @@ mod test {
         let response = client.copy("bar1", "new_bar").unwrap();
 
         let response_value = match response {
-            Response::Integer(x) => x,
+            RedisResponse::Integer(x) => x,
             _ => panic!(),
         };
 
@@ -310,11 +281,11 @@ mod test {
 
         let response = c.send_raw_request("PING").unwrap();
 
-        assert_eq!(response, Response::SimpleString(String::from("PONG")));
+        assert_eq!(response, RedisResponse::SimpleString(String::from("PONG")));
         assert_eq!(
             c.send_raw_request("set mynewvalue 'a great new value'")
                 .unwrap(),
-            Response::SimpleString(String::from("OK"))
+            RedisResponse::SimpleString(String::from("OK"))
         );
     }
 
@@ -325,7 +296,7 @@ mod test {
         let mut connection = connection::Connection::new(HOST, PORT, stream);
         let response = connection.set("myvalue", "a custom value").unwrap();
 
-        assert_eq!(response, Response::SimpleString(String::from("OK")));
+        assert_eq!(response, RedisResponse::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -350,6 +321,6 @@ mod test {
         assert!(set_response.is_ok());
 
         let get_response = connection.send_raw_request(&get_request).unwrap();
-        assert_eq!(get_response, Response::BulkString(String::from("BAR")));
+        assert_eq!(get_response, RedisResponse::BulkString(String::from("BAR")));
     }
 }

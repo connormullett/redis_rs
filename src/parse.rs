@@ -1,7 +1,8 @@
-use crate::enums::RedisError;
+use crate::enums::RedisParseError;
+use crate::enums::{RedisError, RedisResult};
 pub use crate::response::{
-    Response,
-    Response::{Array, BulkString, Error, Integer, SimpleString},
+    RedisResponse,
+    RedisResponse::{Array, BulkString, Error, Integer, SimpleString},
 };
 use std::str::Bytes;
 
@@ -34,9 +35,9 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
     }
 
     if quoted && command.contains('\'') {
-        return Err(RedisError::ParseError(String::from(
-            "Quoted string is not closed (mismatch quotes)",
-        )));
+        return Err(Box::new(RedisParseError {
+            contents: "Bad request format, Mismatch quotes".to_string(),
+        }));
     }
 
     let mut output = String::new();
@@ -52,15 +53,15 @@ pub fn parse_command(command: &str) -> Result<String, RedisError> {
 }
 
 #[doc(hidden)]
-pub fn parse_response(response: &str) -> Result<Response, RedisError> {
+pub fn parse_response(response: &str) -> RedisResult<RedisResponse> {
     let mut bytes = response.bytes();
 
     let first_byte = match bytes.next() {
         Some(value) => value,
         None => {
-            return Err(RedisError::ParseError(
-                "Error reading response data".to_string(),
-            ))
+            return Err(Box::new(RedisParseError {
+                contents: "Error reading response data".to_string(),
+            }))
         }
     };
 
@@ -70,33 +71,33 @@ pub fn parse_response(response: &str) -> Result<Response, RedisError> {
         ':' => parse_integer(&mut bytes),
         '$' => parse_bulk_string(&mut bytes),
         '*' => parse_array(&mut bytes),
-        _ => Err(RedisError::ParseError(format!(
-            "unexpected byte {}, in response",
-            first_byte
-        ))),
+        _ => {
+            return Err(Box::new(RedisParseError {
+                contents: format!("unexpected byte {}, in response", first_byte),
+            }))
+        }
     }?;
 
     Ok(response)
 }
 
 #[doc(hidden)]
-fn parse_error(bytes: &mut std::str::Bytes) -> Result<Response, RedisError> {
+fn parse_error(bytes: &mut std::str::Bytes) -> RedisResult<RedisResponse> {
     let error_string = read_to_carriage_return(bytes);
 
     Ok(Error(error_string))
 }
 
 #[doc(hidden)]
-fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
+fn parse_integer(bytes: &mut Bytes) -> RedisResult<RedisResponse> {
     let integer_value = read_to_carriage_return(bytes);
 
     let parsed_integer: i32 = match integer_value.parse() {
         Ok(value) => value,
         Err(_) => {
-            return Err(RedisError::ParseError(format!(
-                "Error parsing {} as integer",
-                integer_value
-            )))
+            return Err(Box::new(RedisParseError {
+                contents: format!("Error parsing {} as integer", integer_value),
+            }))
         }
     };
 
@@ -104,17 +105,16 @@ fn parse_integer(bytes: &mut Bytes) -> Result<Response, RedisError> {
 }
 
 #[doc(hidden)]
-fn parse_bulk_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
+fn parse_bulk_string(bytes: &mut Bytes) -> RedisResult<RedisResponse> {
     let integer_value = read_to_carriage_return(bytes);
     let mut string = String::new();
 
     let mut num_bytes: i32 = match integer_value.parse() {
         Ok(value) => value,
         Err(_) => {
-            return Err(RedisError::ParseError(format!(
-                "Error parsing {} to integer",
-                integer_value.clone()
-            )))
+            return Err(Box::new(RedisParseError {
+                contents: format!("Error parsing {} to integer", integer_value.clone()),
+            }))
         }
     };
 
@@ -132,12 +132,12 @@ fn parse_bulk_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
 }
 
 #[doc(hidden)]
-fn parse_array(_bytes: &mut Bytes) -> Result<Response, RedisError> {
+fn parse_array(_bytes: &mut Bytes) -> RedisResult<RedisResponse> {
     todo!()
 }
 
 #[doc(hidden)]
-fn parse_simple_string(bytes: &mut Bytes) -> Result<Response, RedisError> {
+fn parse_simple_string(bytes: &mut Bytes) -> RedisResult<RedisResponse> {
     let string = read_to_carriage_return(bytes);
     Ok(SimpleString(string))
 }
@@ -163,19 +163,11 @@ fn read_to_carriage_return(bytes: &mut Bytes) -> String {
 mod test {
     use std::net::TcpStream;
 
-    use crate::response::Response;
     use crate::{connection::Connection, enums::RedisError};
-    use parse::parse_response;
+    use parse::{parse_response, RedisResponse};
 
     fn create_connection(addr: &str) -> Result<TcpStream, RedisError> {
-        match TcpStream::connect(addr) {
-            Ok(s) => Ok(s),
-            Err(_) => {
-                return Err(RedisError::SocketConnectionError(
-                    "Can not connect to server".to_string(),
-                ));
-            }
-        }
+        Ok(TcpStream::connect(addr)?)
     }
 
     const HOST: &'static str = "127.0.0.1";
@@ -203,7 +195,7 @@ mod test {
 
         assert_eq!(
             response,
-            Response::BulkString(String::from("a custom value"))
+            RedisResponse::BulkString(String::from("a custom value"))
         );
     }
 
@@ -213,7 +205,7 @@ mod test {
 
         let response = parse_response(&data).unwrap();
 
-        assert_eq!(response, Response::SimpleString(String::from("OK")));
+        assert_eq!(response, RedisResponse::SimpleString(String::from("OK")));
     }
 
     #[test]
@@ -221,6 +213,6 @@ mod test {
         let data = String::from("-ERROR\r\n");
 
         let response = parse_response(&data).unwrap();
-        assert_eq!(response, Response::Error(String::from("ERROR")));
+        assert_eq!(response, RedisResponse::Error(String::from("ERROR")));
     }
 }

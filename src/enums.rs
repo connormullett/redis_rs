@@ -1,17 +1,18 @@
-use std::fmt;
+use std::{error, fmt};
 
-#[derive(Debug)]
-/// An error type that describes a client error
-pub enum RedisError {
-    /// Error variant used when a request/response fails to parse
-    ParseError(String),
-    /// Error variant used when an error occurs when reading/writing from/to the Connection stream
-    SocketConnectionError(String),
+pub type RedisResult<T> = Result<T, RedisError>;
+
+pub type RedisError = Box<dyn error::Error>;
+
+#[derive(Debug, Clone)]
+pub struct RedisParseError {
+    pub contents: String,
 }
 
-#[doc(hidden)]
-impl fmt::Display for RedisError {
+impl fmt::Display for RedisParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "An error occured")
+        write!(f, "An error occured while parsing")
     }
 }
+
+impl error::Error for RedisParseError {}

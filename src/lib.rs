@@ -10,7 +10,7 @@
 //! extern crate redis_rs;
 //! use std::net::TcpStream;
 //! use redis_rs::connection::Connection;
-//! use redis_rs::response::Response;
+//! use redis_rs::response::RedisResponse;
 //!
 //! let host = "127.0.0.1";
 //! let port = 6379;
@@ -26,7 +26,7 @@
 //! let response = client.get("FOO").unwrap();
 //!
 //! // match against the response to extract the value
-//! if let Response::BulkString(value) = response {
+//! if let RedisResponse::BulkString(value) = response {
 //!   println!("{}", value);
 //! }
 //!```
